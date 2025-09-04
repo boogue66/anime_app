@@ -1,0 +1,27 @@
+# Flutter-specific ignores
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+.idea/
+.metadata
+.packages
+/ios/.symlinks/
+/android/.gradle/
+/android/local.properties
+/android/.idea/
+/android/build/
+/build/
+/web/
+/windows/
+/linux/
+/macos/
+
+# IDE-specific ignores
+.vscode/
+
+# OS-specific ignores
+.DS_Store
+Thumbs.db
+
+# Crash reporting
+*.log
