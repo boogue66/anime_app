@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:anime_app/models/history_anime_model.dart';
@@ -29,14 +30,14 @@ class HistoryCard extends ConsumerWidget {
               // Anime Poster
               ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  item.anime.poster,
-                  width: 60, // Reduced width
-                  height: 70, // Reduced height
+                child: CachedNetworkImage(
+                  width: 50,
+                  height: 70,
+                  imageUrl: item.anime.poster,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.broken_image, size: 60);
-                  },
+                  placeholder: (context, url) =>
+                      const Center(child: CircularProgressIndicator()),
+                  errorWidget: (context, url, error) => const Icon(Icons.error),
                 ),
               ),
               const SizedBox(width: 10),

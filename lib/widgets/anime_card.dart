@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:anime_app/models/models.dart';
 import 'package:anime_app/screens/anime_detail_screen.dart';
 import 'package:flutter/material.dart';
@@ -27,16 +28,17 @@ class AnimeCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.only(
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(12.0),
                       topRight: Radius.circular(12.0),
                     ),
-                    child: Image.network(
-                      anime.poster,
+                    child: CachedNetworkImage(
+                      imageUrl: anime.poster,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.error);
-                      },
+                      placeholder: (context, url) =>
+                          const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.error),
                     ),
                   ),
                 ),
@@ -52,7 +54,6 @@ class AnimeCard extends ConsumerWidget {
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.primary,
                         ),
-
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

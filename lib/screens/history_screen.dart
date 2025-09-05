@@ -45,7 +45,10 @@ class HistoryScreen extends ConsumerWidget {
                           ? Theme.of(context).primaryColor
                           : null,
                     ),
-                    child: const Text('Viendo'),
+                    child: const Text(
+                      'Viendo',
+                      style: TextStyle(color: Colors.black),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8.0),
@@ -60,7 +63,10 @@ class HistoryScreen extends ConsumerWidget {
                           ? Theme.of(context).primaryColor
                           : null,
                     ),
-                    child: const Text('Terminados'),
+                    child: const Text(
+                      'Finished',
+                      style: TextStyle(color: Colors.black),
+                    ),
                   ),
                 ),
               ],

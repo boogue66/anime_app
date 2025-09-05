@@ -2,6 +2,7 @@ import 'package:anime_app/models/anime_model.dart';
 import 'package:anime_app/models/server_model.dart';
 import 'package:anime_app/providers/anime_provider.dart';
 import 'package:anime_app/screens/episode_player_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:anime_app/models/episode_model.dart';
@@ -57,10 +58,12 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      anime.poster,
+                    CachedNetworkImage(
+                      imageUrl: anime.poster,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
+                      placeholder: (context, url) =>
+                          const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) =>
                           const Icon(Icons.error),
                     ),
                     const DecoratedBox(
@@ -121,11 +124,12 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
                     Center(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12.0),
-                        child: Image.network(
-                          width: 200,
-                          anime.poster,
+                        child: CachedNetworkImage(
+                          imageUrl: anime.poster,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
+                          placeholder: (context, url) =>
+                              const Center(child: CircularProgressIndicator()),
+                          errorWidget: (context, url, error) =>
                               const Icon(Icons.error),
                         ),
                       ),

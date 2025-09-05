@@ -68,14 +68,14 @@ class UserProfileScreen extends ConsumerWidget {
                             context: context,
                             builder: (context) {
                               final List<Color> colors = [
-                                const Color(0xFF00E5FF), // Cyan brillante
-                                const Color(0xFF00FF6A), // Verde fosforescente
-                                const Color(0xFFFFEA00), // Amarillo neón
-                                const Color(0xFFFF6D00), // Naranja neón
-                                const Color(0xFFFF1744), // Rojo neón
-                                const Color(0xFFF50057), // Magenta neón
-                                const Color(0xFFD500F9), // Púrpura neón
-                                const Color(0xFF651FFF), // Indigo brillante
+                                const Color(0xFFB0BEC5), // Gris azulado
+                                const Color(0xFF90CAF9), // Azul suave
+                                const Color(0xFF80CBC4), // Verde agua
+                                const Color(0xFFA5D6A7), // Verde suave
+                                const Color(0xFFFFE082), // Amarillo suave
+                                const Color(0xFFFFCCBC), // Durazno claro
+                                const Color(0xFFF8BBD0), // Rosa claro
+                                const Color(0xFFCE93D8), // Lila suave
                               ];
                               return AlertDialog(
                                 title: const Text('Elija un color'),

@@ -13,8 +13,8 @@ final selectedCategoryProvider = StateProvider<AnimeCategory>(
 
 // Un mapa de categorías a sus nombres para mostrar en los botones
 final categoryNames = {
-  AnimeCategory.latestAnimes: 'Nuevos animes',
-  AnimeCategory.latestEpisodes: 'Ultimos episodios',
+  AnimeCategory.latestAnimes: 'News Ani',
+  AnimeCategory.latestEpisodes: 'News Eps',
 };
 
 class AnimeListScreen extends ConsumerWidget {
@@ -53,7 +53,6 @@ class AnimeListScreen extends ConsumerWidget {
                               category,
                       style: ElevatedButton.styleFrom(
                         elevation: 5,
-
                         backgroundColor: selectedCategory == category
                             ? Theme.of(context).colorScheme.primary
                             : null,
