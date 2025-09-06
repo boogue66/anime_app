@@ -13,7 +13,7 @@ import 'package:anime_app/providers/history_provider.dart';
 class EpisodePlayerScreen extends ConsumerStatefulWidget {
   final Future<List<ServerElement>> serversFuture;
   final List<Episode> allEpisodes;
-  final int currentEpisodeNumber;
+  final num currentEpisodeNumber; // Changed to num
   final String animeSlug;
 
   const EpisodePlayerScreen({
@@ -27,15 +27,14 @@ class EpisodePlayerScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<EpisodePlayerScreen> createState() =>
-      _EpisodePlayerScreenState();
+  ConsumerState<EpisodePlayerScreen> createState() => _EpisodePlayerScreenState();
 }
 
 class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
   WebViewController? _controller;
   String? _currentVideoUrl;
   late List<Episode> _allEpisodes;
-  late int _currentEpisodeNumber;
+  late num _currentEpisodeNumber; // Changed to num
   late String _animeSlug;
   bool _showControls = true;
   Timer? _hideControlsTimer;
@@ -75,7 +74,10 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
               _finalVideoUrl = url;
               ref
                   .read(historyProvider.notifier)
-                  .addOrUpdateHistory(_animeSlug, _currentEpisodeNumber);
+                  .addOrUpdateHistory(
+                    _animeSlug,
+                    _currentEpisodeNumber, // Pass num directly
+                  );
             }
           },
           onWebResourceError: (WebResourceError error) {
@@ -87,8 +89,7 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
             if (_finalVideoUrl == null) {
               return NavigationDecision.navigate;
             }
-            if (request.url == _finalVideoUrl ||
-                request.url == _currentVideoUrl) {
+            if (request.url == _finalVideoUrl || request.url == _currentVideoUrl) {
               return NavigationDecision.navigate;
             } else {
               return NavigationDecision.prevent;
@@ -149,23 +150,49 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
             if (_controller == null) {
               _initializeWebView(swServer.url);
             }
-            return GestureDetector(
-              onTap: _toggleControlsVisibility,
-              child: Stack(
-                children: [
-                  if (_controller != null)
-                    WebViewWidget(controller: _controller!),
-                  AnimatedOpacity(
-                    opacity: _showControls ? 0.75 : 0.50,
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                if (_controller != null) WebViewWidget(controller: _controller!),
+
+                // Top gesture detector area
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: _toggleControlsVisibility,
+                    child: Container(
+                      height: 120.0, // Height of the tap area
+                      color: Colors.transparent,
+                    ),
+                  ),
+                ),
+
+                // Controls
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: AnimatedOpacity(
+                    opacity: _showControls ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
                     child: IgnorePointer(
                       ignoring: !_showControls,
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            top: 0.0,
-                            left: 0.0,
-                            child: ElevatedButton.icon(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ElevatedButton.icon(
                               onPressed: () {
                                 Navigator.pop(context);
                               },
@@ -173,37 +200,39 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
                               label: const Text('Atras'),
                               style: ElevatedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(0.0),
+                                  borderRadius: BorderRadius.only(
+                                    topRight: Radius.circular(20.0),
+                                    bottomRight: Radius.circular(20.0),
+                                  ),
                                 ),
                                 minimumSize: const Size(150, 70),
-                                backgroundColor: Colors.black,
+                                backgroundColor: Theme.of(context).colorScheme.primary,
                                 foregroundColor: Colors.white,
                               ),
                             ),
-                          ),
-                          Positioned(
-                            top: 0.0,
-                            right: 0.0,
-                            child: ElevatedButton.icon(
+                            ElevatedButton.icon(
                               onPressed: _playNextEpisode,
                               icon: const Icon(Icons.skip_next),
-                              label: const Text('Siguiente Episodio'),
+                              label: const Text('Siguiente'),
                               style: ElevatedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(0.0),
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(20.0),
+                                    bottomLeft: Radius.circular(20.0),
+                                  ),
                                 ),
                                 minimumSize: const Size(150, 70),
-                                backgroundColor: Colors.black,
+                                backgroundColor: Theme.of(context).colorScheme.primary,
                                 foregroundColor: Colors.white,
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             );
           } else {
             return const Center(child: Text('No servers found.'));
@@ -214,14 +243,11 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
   }
 
   Future<void> _playNextEpisode() async {
-    final currentEpisodeIndex = _allEpisodes.indexWhere(
-      (e) => e.episode == _currentEpisodeNumber,
-    );
-    if (currentEpisodeIndex == -1 ||
-        currentEpisodeIndex == _allEpisodes.length - 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This is the last episode.')),
-      );
+    final currentEpisodeIndex = _allEpisodes.indexWhere((e) => e.episode == _currentEpisodeNumber);
+    if (currentEpisodeIndex == -1 || currentEpisodeIndex == _allEpisodes.length - 1) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('This is the last episode.')));
       return;
     }
 
@@ -237,7 +263,7 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
       final servers = await ref.read(
         episodeServersProvider((
           slug: _animeSlug,
-          episode: nextEpisode.episode,
+          episode: nextEpisode.episode.toInt(), // Use .toInt()
         )).future,
       );
       if (!mounted) return;
@@ -260,23 +286,21 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
 
         if (!context.mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Playing Episode ${nextEpisode.episode}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Playing Episode ${nextEpisode.episode}')));
       } else {
         if (!context.mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No servers found for the next episode.'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No servers found for the next episode.')));
       }
     } catch (e) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load next episode: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load next episode: $e')));
     }
   }
 }
