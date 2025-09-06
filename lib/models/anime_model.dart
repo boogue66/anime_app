@@ -1,4 +1,5 @@
 import 'package:anime_app/models/episode_model.dart';
+import 'package:anime_app/models/episodes_pagination_model.dart';
 
 class Anime {
   final String id;
@@ -6,6 +7,7 @@ class Anime {
   final List<String> alternativeTitles;
   final String? description;
   final List<Episode> episodes;
+  final EpisodesPagination? episodesPagination;
   final List<String> genres;
   final String poster;
   final String status;
@@ -23,6 +25,7 @@ class Anime {
     required this.alternativeTitles,
     this.description,
     required this.episodes,
+    this.episodesPagination,
     required this.genres,
     required this.poster,
     required this.status,
@@ -54,6 +57,9 @@ class Anime {
           : (json['episodes'] as List<dynamic>)
                 .map((e) => Episode.fromJson(e))
                 .toList(),
+      episodesPagination: json['episodesPagination'] == null
+          ? null
+          : EpisodesPagination.fromJson(json['episodesPagination']),
       genres: json['genres'] == null ? [] : List<String>.from(json['genres']),
       poster: posterUrl,
       status: json['status'] ?? 'N/A',
@@ -78,6 +84,7 @@ class Anime {
     'alternativeTitles': alternativeTitles,
     'description': description,
     'episodes': episodes.map((e) => e.toJson()).toList(),
+    'episodesPagination': episodesPagination?.toJson(),
     'genres': genres,
     'poster': poster,
     'status': status,

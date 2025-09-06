@@ -1,11 +1,12 @@
 import 'package:anime_app/models/models.dart';
+import 'package:anime_app/models/paginated_episodes_response_model.dart';
 import 'package:anime_app/services/anime_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // --- Providers for Anime Lists ---
 
 /// Provider para obtener los últimos episodios agregados.
-final latestEpisodesProvider = FutureProvider<List<Anime>>((ref) {
+final latestEpisodesProvider = FutureProvider<List<Episode>>((ref) {
   final animeService = ref.watch(animeServiceProvider);
   return animeService.getLatestEpisodes();
 });
@@ -43,9 +44,9 @@ final animeDetailProvider = FutureProvider.family<Anime, String>((ref, slug) {
 });
 
 /// Provider para obtener la lista de episodios de un anime por su slug.
-final episodeListProvider = FutureProvider.family<List<Episode>, String>((ref, slug) {
+final episodeListProvider = FutureProvider.family<PaginatedEpisodesResponse, ({String slug, int page, int limit})>((ref, params) {
   final animeService = ref.watch(animeServiceProvider);
-  return animeService.getAnimeEpisodes(slug);
+  return animeService.getAnimeEpisodes(params.slug, page: params.page, limit: params.limit);
 });
 
 /// Provider para mantener el estado del episodio seleccionado.

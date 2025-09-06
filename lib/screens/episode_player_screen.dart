@@ -11,20 +11,19 @@ import 'package:anime_app/providers/anime_provider.dart';
 import 'package:anime_app/providers/history_provider.dart';
 
 class EpisodePlayerScreen extends ConsumerStatefulWidget {
-  final String videoUrl;
-  final List<Episode> allEpisodes; // New: full list of episodes
-  final int currentEpisodeNumber; // New: current episode number
-  final String animeSlug; // New: anime slug for fetching servers
-  final List<String> alternativeVideoUrls;
+  final Future<List<ServerElement>> serversFuture;
+  final List<Episode> allEpisodes;
+  final int currentEpisodeNumber;
+  final String animeSlug;
 
   const EpisodePlayerScreen({
     super.key,
-    required this.videoUrl,
+    required this.serversFuture,
     required this.allEpisodes,
     required this.currentEpisodeNumber,
     required this.animeSlug,
-    this.alternativeVideoUrls = const [],
     required String episodeId,
+    required String videoUrl,
   });
 
   @override
@@ -33,8 +32,8 @@ class EpisodePlayerScreen extends ConsumerStatefulWidget {
 }
 
 class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
-  late WebViewController _controller;
-  late String _currentVideoUrl;
+  WebViewController? _controller;
+  String? _currentVideoUrl;
   late List<Episode> _allEpisodes;
   late int _currentEpisodeNumber;
   late String _animeSlug;
@@ -46,23 +45,21 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _currentVideoUrl = widget.videoUrl;
-    _allEpisodes = widget.allEpisodes; // Initialize
-    _currentEpisodeNumber = widget.currentEpisodeNumber; // Initialize
-    _animeSlug = widget.animeSlug; // Initialize
+    _allEpisodes = widget.allEpisodes;
+    _currentEpisodeNumber = widget.currentEpisodeNumber;
+    _animeSlug = widget.animeSlug;
 
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
 
-    // Hide status bar and navigation bar
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    _initializeWebView();
     _startHideControlsTimer();
   }
 
-  void _initializeWebView() {
+  void _initializeWebView(String videoUrl) {
+    _currentVideoUrl = videoUrl;
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -70,51 +67,40 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
           onProgress: (int progress) {},
           onPageStarted: (String url) {
             setState(() {
-              _hasError =
-                  false; // Reset error state when a new page starts loading
+              _hasError = false;
             });
           },
           onPageFinished: (String url) {
-            // Once the page finishes loading, consider this the final video URL
             if (_finalVideoUrl == null) {
               _finalVideoUrl = url;
-              print('Final video URL set to: $_finalVideoUrl');
-              // Add to history
               ref
                   .read(historyProvider.notifier)
                   .addOrUpdateHistory(_animeSlug, _currentEpisodeNumber);
             }
           },
           onWebResourceError: (WebResourceError error) {
-            print('WebView Error: ${error.description}'); // Log error
             setState(() {
-              _hasError = true; // Set error state to true
+              _hasError = true;
             });
           },
           onNavigationRequest: (NavigationRequest request) {
-            // If the final video URL hasn't been determined yet, allow navigation
             if (_finalVideoUrl == null) {
-              print('Allowing navigation during initial load: ${request.url}');
               return NavigationDecision.navigate;
             }
-            // or the initial currentVideoUrl (for safety/edge cases).
             if (request.url == _finalVideoUrl ||
                 request.url == _currentVideoUrl) {
-              print('Allowing navigation to known video URL: ${request.url}');
               return NavigationDecision.navigate;
             } else {
-              // Prevent any other navigations after the video has started playing
-              print('Preventing unwanted navigation: ${request.url}');
               return NavigationDecision.prevent;
             }
           },
         ),
       )
-      ..loadRequest(Uri.parse(_currentVideoUrl));
+      ..loadRequest(Uri.parse(_currentVideoUrl!));
   }
 
   void _startHideControlsTimer() {
-    _hideControlsTimer?.cancel(); // Cancel any existing timer
+    _hideControlsTimer?.cancel();
     _hideControlsTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
@@ -129,28 +115,17 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
       _showControls = !_showControls;
     });
     if (_showControls) {
-      _startHideControlsTimer(); // Restart timer if controls are shown
+      _startHideControlsTimer();
     }
-  }
-
-  void _selectServer(String url) {
-    setState(() {
-      _currentVideoUrl = url;
-      _hasError = false; // Clear error when a new server is selected
-      _finalVideoUrl = null; // Reset final video URL for new server
-    });
-    _controller.loadRequest(Uri.parse(_currentVideoUrl));
-    _startHideControlsTimer(); // Restart timer after server selection
   }
 
   @override
   void dispose() {
-    _hideControlsTimer?.cancel(); // Cancel timer on dispose
+    _hideControlsTimer?.cancel();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-    // Restore system UI to default (show status bar and navigation bar)
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -158,95 +133,82 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GestureDetector(
-        onTap: _toggleControlsVisibility,
-        child: Stack(
-          children: [
-            WebViewWidget(controller: _controller),
-            if (_hasError && widget.alternativeVideoUrls.isNotEmpty)
-              Center(
-                child: Container(
-                  color: Colors.black.withAlpha(204),
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Video failed to load. Select an alternative server:',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: widget.alternativeVideoUrls.map((url) {
-                          return ChoiceChip(
-                            label: Text(
-                              'Server ${widget.alternativeVideoUrls.indexOf(url) + 1}',
+      body: FutureBuilder<List<ServerElement>>(
+        future: widget.serversFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+            final servers = snapshot.data!;
+            final swServer = servers.firstWhere(
+              (s) => s.server == ServerEnum.SW,
+              orElse: () => servers.first,
+            );
+            if (_controller == null) {
+              _initializeWebView(swServer.url);
+            }
+            return GestureDetector(
+              onTap: _toggleControlsVisibility,
+              child: Stack(
+                children: [
+                  if (_controller != null)
+                    WebViewWidget(controller: _controller!),
+                  AnimatedOpacity(
+                    opacity: _showControls ? 0.75 : 0.50,
+                    duration: const Duration(milliseconds: 300),
+                    child: IgnorePointer(
+                      ignoring: !_showControls,
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            top: 0.0,
+                            left: 0.0,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              icon: const Icon(Icons.arrow_back),
+                              label: const Text('Atras'),
+                              style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(0.0),
+                                ),
+                                minimumSize: const Size(150, 70),
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                              ),
                             ),
-                            selected: _currentVideoUrl == url,
-                            onSelected: (selected) {
-                              if (selected) {
-                                _selectServer(url);
-                              }
-                            },
-                            selectedColor: Colors.blueAccent,
-                            labelStyle: TextStyle(
-                              color: _currentVideoUrl == url
-                                  ? Colors.white
-                                  : Colors.black,
+                          ),
+                          Positioned(
+                            top: 0.0,
+                            right: 0.0,
+                            child: ElevatedButton.icon(
+                              onPressed: _playNextEpisode,
+                              icon: const Icon(Icons.skip_next),
+                              label: const Text('Siguiente Episodio'),
+                              style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(0.0),
+                                ),
+                                minimumSize: const Size(150, 70),
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                              ),
                             ),
-                          );
-                        }).toList(),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            AnimatedOpacity(
-              opacity: 1.0, // Always visible for testing
-              duration: const Duration(milliseconds: 300),
-              child: IgnorePointer(
-                ignoring: false, // Always allow pointer events for testing
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: 6.0,
-                      left: 0.0,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context); // Go back
-                        },
-                        icon: const Icon(Icons.arrow_back),
-                        label: const Text('Atras'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(180, 100),
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 6.0,
-                      right: 0.0,
-                      child: ElevatedButton.icon(
-                        onPressed: _playNextEpisode, // Call the new method
-                        icon: const Icon(Icons.skip_next),
-                        label: const Text('Siguiente Episodio'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(180, 100),
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+            );
+          } else {
+            return const Center(child: Text('No servers found.'));
+          }
+        },
       ),
     );
   }
@@ -291,9 +253,9 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
           _currentVideoUrl = swServer.url;
           _currentEpisodeNumber = nextEpisode.episode;
           _hasError = false;
-          _finalVideoUrl = null; // Reset for new episode
+          _finalVideoUrl = null;
         });
-        _controller.loadRequest(Uri.parse(_currentVideoUrl));
+        _controller?.loadRequest(Uri.parse(_currentVideoUrl!));
         _startHideControlsTimer();
 
         if (!context.mounted) return;
@@ -311,7 +273,7 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
         );
       }
     } catch (e) {
-      Navigator.pop(context); // Dismiss loading indicator
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load next episode: $e')),
       );

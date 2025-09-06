@@ -61,7 +61,7 @@ class CustomBottomNavigationBar extends ConsumerWidget {
         BottomNavigationBarItem(
           icon: Padding(
             padding: EdgeInsets.only(top: 4.0),
-            child: Icon(Icons.search, size: 28),
+            child: Icon(Icons.history_edu, size: 28),
           ),
           label: 'Historial',
         ),

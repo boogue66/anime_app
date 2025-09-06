@@ -22,4 +22,12 @@ class EpisodesPagination {
       hasPrevPage: json['hasPrevPage'] ?? false,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'totalEpisodes': totalEpisodes,
+    'totalPages': totalPages,
+    'currentPage': currentPage,
+    'hasNextPage': hasNextPage,
+    'hasPrevPage': hasPrevPage,
+  };
 }

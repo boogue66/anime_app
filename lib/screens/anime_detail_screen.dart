@@ -1,5 +1,4 @@
 import 'package:anime_app/models/anime_model.dart';
-import 'package:anime_app/models/server_model.dart';
 import 'package:anime_app/providers/anime_provider.dart';
 import 'package:anime_app/screens/episode_player_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -40,7 +39,6 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
   Widget _buildPortraitLayout(BuildContext context, Anime anime) {
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(),
         body: CustomScrollView(
           slivers: [
             SliverAppBar(
@@ -52,6 +50,7 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
                 title: Text(
                   anime.title,
                   style: const TextStyle(
+                    overflow: TextOverflow.ellipsis,
                     shadows: [Shadow(blurRadius: 8, color: Colors.black)],
                   ),
                 ),
@@ -94,6 +93,7 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
               slug: widget.slug,
               isAscending: _isAscendingOrder,
               isSliver: true,
+              totalEpisodes: anime.episodesPagination?.totalEpisodes ?? 0,
             ),
           ],
         ),
@@ -161,6 +161,8 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
                         slug: widget.slug,
                         isAscending: _isAscendingOrder,
                         isSliver: false,
+                        totalEpisodes:
+                            anime.episodesPagination?.totalEpisodes ?? 0,
                       ),
                     ),
                   ],
@@ -248,9 +250,10 @@ class _EpisodeListHeader extends StatelessWidget {
           children: [
             Text(
               'Episodios',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
             ),
             IconButton(
               icon: Icon(
@@ -269,63 +272,221 @@ class _EpisodeListHeader extends StatelessWidget {
   }
 }
 
-class _EpisodeList extends ConsumerWidget {
+class _EpisodeList extends ConsumerStatefulWidget {
   final String slug;
   final bool isAscending;
   final bool isSliver;
+  final int totalEpisodes;
 
   const _EpisodeList({
     required this.slug,
     required this.isAscending,
     this.isSliver = false,
+    required this.totalEpisodes,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final episodeListAsyncValue = ref.watch(episodeListProvider(slug));
+  ConsumerState<_EpisodeList> createState() => _EpisodeListState();
+}
 
-    return episodeListAsyncValue.when(
-      data: (episodes) {
-        final sortedEpisodes = _sortEpisodes(episodes);
-        if (isSliver) {
-          return SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildEpisodeTile(
-                context,
-                ref,
-                sortedEpisodes[index],
-                sortedEpisodes,
-              ),
-              childCount: sortedEpisodes.length,
-            ),
-          );
-        } else {
-          return ListView.builder(
-            itemCount: sortedEpisodes.length,
-            itemBuilder: (context, index) => _buildEpisodeTile(
-              context,
-              ref,
-              sortedEpisodes[index],
-              sortedEpisodes,
-            ),
-          );
-        }
-      },
-      loading: () => isSliver
+class _EpisodeListState extends ConsumerState<_EpisodeList> {
+  final Map<int, List<Episode>> _episodesByGroup = {};
+  final Map<int, bool> _isLoadingGroup = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Load the first group of episodes immediately if there are more than 50 episodes
+    if (widget.totalEpisodes > 25) {
+      _fetchEpisodesForGroup(0, 1);
+    } else {
+      // If 25 or fewer episodes, fetch all of them immediately
+      _fetchEpisodesForGroup(0, 1, limit: widget.totalEpisodes);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _EpisodeList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isAscending != oldWidget.isAscending) {
+      // Clear cached episodes and loading states to force re-fetch with new sort order
+      _episodesByGroup.clear();
+      _isLoadingGroup.clear();
+      // Re-fetch the first group immediately if applicable
+      if (widget.totalEpisodes > 50) {
+        _fetchEpisodesForGroup(0, 1);
+      } else {
+        _fetchEpisodesForGroup(0, 1, limit: widget.totalEpisodes);
+      }
+      setState(() {}); // Trigger a rebuild
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.totalEpisodes <= 50) {
+      return _buildSimpleEpisodeList(context);
+    } else {
+      final totalGroups = (widget.totalEpisodes / 25).ceil();
+      if (widget.isSliver) {
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => _buildGroupTile(context, index, totalGroups),
+            childCount: totalGroups,
+          ),
+        );
+      } else {
+        return Expanded(
+          // Wrap in Expanded
+          child: ListView.builder(
+            primary: false, // Important for nested scroll views
+            shrinkWrap: true, // Important for nested scroll views
+            itemCount: totalGroups,
+            itemBuilder: (context, index) {
+              final actualIndex = widget.isAscending
+                  ? index
+                  : totalGroups - 1 - index;
+              return _buildGroupTile(context, actualIndex, totalGroups);
+            },
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildSimpleEpisodeList(BuildContext context) {
+    if (widget.totalEpisodes <= 25) {
+      return _buildSimpleEpisodeList(context);
+    } else if (_episodesByGroup[0] == null || _episodesByGroup[0]!.isEmpty) {
+      return widget.isSliver
           ? const SliverToBoxAdapter(
               child: Center(child: CircularProgressIndicator()),
             )
-          : const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => isSliver
-          ? SliverToBoxAdapter(child: Center(child: Text('Error: $err')))
-          : Center(child: Text('Error: $err')),
+          : const Center(child: CircularProgressIndicator());
+    } else {
+      final episodes = _episodesByGroup[0]!;
+      if (widget.isSliver) {
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => _buildEpisodeTile(context, episodes[index]),
+            childCount: episodes.length,
+          ),
+        );
+      } else {
+        return ListView.builder(
+          itemCount: episodes.length,
+          itemBuilder: (context, index) =>
+              _buildEpisodeTile(context, episodes[index]),
+        );
+      }
+    }
+  }
+
+  Widget _buildGroupTile(
+    BuildContext context,
+    int actualIndex,
+    int totalGroups,
+  ) {
+    final groupStart = actualIndex * 25 + 1;
+    final groupEnd = groupStart + 24;
+    final groupTitle = 'Episodios $groupStart - $groupEnd';
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
+      child: Container(
+        padding: const EdgeInsets.all(1),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8.0),
+          color: Theme.of(context).colorScheme.primary.withAlpha(50),
+        ),
+        child: ExpansionTile(
+          // This is the line that was causing the error
+          key: ValueKey('${actualIndex}_${widget.isAscending}'),
+          expansionAnimationStyle: AnimationStyle(
+            curve: Curves.easeIn,
+            duration: const Duration(milliseconds: 500),
+            reverseCurve: Curves.bounceOut,
+            reverseDuration: const Duration(milliseconds: 500),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          tilePadding: const EdgeInsets.all(2),
+          backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(10),
+          collapsedShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          title: Padding(
+            // This is the line that was causing the error
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              groupTitle,
+              style: const TextStyle(
+                color: Colors.white60,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          onExpansionChanged: (isExpanding) {
+            if (isExpanding && _episodesByGroup[actualIndex] == null) {
+              final page = actualIndex + 1; // Calculate page here
+              _fetchEpisodesForGroup(actualIndex, page); // Pass page directly
+            }
+          },
+          children: _isLoadingGroup[actualIndex] ?? false
+              ? [const Center(child: CircularProgressIndicator())]
+              : _episodesByGroup[actualIndex]
+                        ?.map((episode) => _buildEpisodeTile(context, episode))
+                        .toList() ??
+                    [],
+        ),
+      ),
     );
+  }
+
+  Future<void> _fetchEpisodesForGroup(
+    int groupIndex,
+    int requestedPage, { // Renamed page to requestedPage to avoid confusion
+    int? limit,
+  }) async {
+    setState(() {
+      _isLoadingGroup[groupIndex] = true;
+    });
+
+    final actualLimit = limit ?? 25;
+    final totalPages = (widget.totalEpisodes / actualLimit).ceil();
+
+    // Calculate the actual page to request from the API
+    // If requestedPage is 1 (for episodes 1-50), we need to request the last page from the API.
+    // If requestedPage is totalPages (for latest episodes), we need to request page 1 from the API.
+    final apiPage = totalPages - requestedPage + 1;
+
+    try {
+      final response = await ref.read(
+        episodeListProvider((
+          slug: widget.slug,
+          page: apiPage, // Use the adjusted apiPage
+          limit: actualLimit,
+        )).future,
+      );
+      print('Fetched episodes length: ${response.episodes.length}');
+      final sortedEpisodes = _sortEpisodes(response.episodes);
+      setState(() {
+        _episodesByGroup[groupIndex] = sortedEpisodes;
+        _isLoadingGroup[groupIndex] = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingGroup[groupIndex] = false;
+      });
+      // Handle error appropriately
+    }
   }
 
   List<Episode> _sortEpisodes(List<Episode> episodes) {
     final sortedEpisodes = List<Episode>.from(episodes);
     sortedEpisodes.sort((a, b) {
-      if (isAscending) {
+      if (widget.isAscending) {
         return a.episode.compareTo(b.episode);
       } else {
         return b.episode.compareTo(a.episode);
@@ -334,18 +495,25 @@ class _EpisodeList extends ConsumerWidget {
     return sortedEpisodes;
   }
 
-  Widget _buildEpisodeTile(
-    BuildContext context,
-    WidgetRef ref,
-    Episode episode,
-    List<Episode> allEpisodes,
-  ) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+  Widget _buildEpisodeTile(BuildContext context, Episode episode) {
+    final totalEpisodes = widget.totalEpisodes;
+    return Padding(
+      padding: totalEpisodes <= 25
+          ? const EdgeInsets.symmetric(vertical: 3, horizontal: 16)
+          : const EdgeInsets.all(2.0),
       child: ListTile(
-        title: Text('Episodio ${episode.episode}'),
-        trailing: const Icon(Icons.play_circle_outline),
-        onTap: () => _playEpisode(context, ref, episode, allEpisodes),
+        tileColor: const Color(0xDD292929),
+        title: Text(
+          'Episodio ${episode.episode}',
+          style: const TextStyle(color: Colors.white),
+        ),
+        trailing: const Icon(Icons.play_circle_outline, color: Colors.red),
+        onTap: () => _playEpisode(
+          context,
+          ref,
+          episode,
+          _episodesByGroup.values.expand((x) => x).toList(),
+        ),
       ),
     );
   }
@@ -355,54 +523,30 @@ class _EpisodeList extends ConsumerWidget {
     WidgetRef ref,
     Episode episode,
     List<Episode> allEpisodes,
-  ) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+  ) {
+    final serversFuture = ref.read(
+      episodeServersProvider((
+        slug: widget.slug,
+        episode: episode.episode,
+      )).future,
     );
 
-    try {
-      final servers = await ref.read(
-        episodeServersProvider((slug: slug, episode: episode.episode)).future,
-      );
-      if (!context.mounted) return;
-      Navigator.pop(context); // Dismiss loading dialog
+    ref
+        .read(historyProvider.notifier)
+        .addOrUpdateHistory(widget.slug, episode.episode);
 
-      if (servers.isNotEmpty) {
-        final swServer = servers.firstWhere(
-          (s) => s.server == ServerEnum.SW,
-          orElse: () => servers.first,
-        );
-
-        await ref
-            .read(historyProvider.notifier)
-            .addOrUpdateHistory(slug, episode.episode);
-
-        if (!context.mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EpisodePlayerScreen(
-              videoUrl: swServer.url,
-              allEpisodes: allEpisodes,
-              currentEpisodeNumber: episode.episode,
-              animeSlug: slug,
-              episodeId: '',
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No servers found for this episode.')),
-        );
-      }
-    } catch (e) {
-      if (!context.mounted) return;
-      Navigator.pop(context); // Dismiss loading dialog on error
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to get servers: $e')));
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EpisodePlayerScreen(
+          serversFuture: serversFuture,
+          allEpisodes: allEpisodes,
+          currentEpisodeNumber: episode.episode,
+          animeSlug: widget.slug,
+          episodeId: '',
+          videoUrl: '',
+        ),
+      ),
+    );
   }
 }

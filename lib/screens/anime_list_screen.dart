@@ -1,3 +1,5 @@
+import 'package:anime_app/models/anime_model.dart';
+import 'package:anime_app/models/episode_model.dart';
 import 'package:anime_app/providers/anime_provider.dart';
 import 'package:anime_app/widgets/anime_card.dart';
 import 'package:flutter/material.dart';
@@ -78,8 +80,27 @@ class AnimeListScreen extends ConsumerWidget {
           // Grid de animes
           Expanded(
             child: animeList.when(
-              data: (animes) {
-                if (animes.isEmpty) {
+              data: (data) {
+                List<Anime> animesToDisplay;
+                if (selectedCategory == AnimeCategory.latestEpisodes) {
+                  animesToDisplay = (data as List<Episode>).map((episode) {
+                    return Anime(
+                      id: episode.episode.toString(),
+                      alternativeTitles: [],
+                      episodes: [episode],
+                      genres: [],
+                      poster:
+                          'https://via.placeholder.com/150', // Placeholder image
+                      status: 'N/A',
+                      title: 'Episode ${episode.episode}',
+                      slug: 'episode-${episode.episode}',
+                    );
+                  }).toList();
+                } else {
+                  animesToDisplay = data as List<Anime>;
+                }
+
+                if (animesToDisplay.isEmpty) {
                   return const Center(child: Text('No se encontraron animes.'));
                 }
                 final mediaQuery = MediaQuery.of(context);
@@ -100,9 +121,9 @@ class AnimeListScreen extends ConsumerWidget {
                     mainAxisSpacing: 5.0,
                   ),
 
-                  itemCount: animes.length,
+                  itemCount: animesToDisplay.length,
                   itemBuilder: (context, index) {
-                    final anime = animes[index];
+                    final anime = animesToDisplay[index];
                     return AnimeCard(anime: anime);
                   },
                 );

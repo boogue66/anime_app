@@ -50,7 +50,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       appBar: _isSearching ? _buildSearchAppBar() : _buildNormalAppBar(),
-      body: IndexedStack(index: _selectedIndex, children: screens),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 500),
+        switchInCurve: Curves.easeInOut,
+        switchOutCurve: Curves.easeInOut,
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        child: SizedBox(
+          key: ValueKey<int>(_selectedIndex),
+          child: screens[_selectedIndex],
+        ),
+      ),
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
@@ -60,10 +71,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   AppBar _buildNormalAppBar() {
     return AppBar(
-      title: Text(
+      /* title: Text(
         'Animee',
         style: TextStyle(color: Theme.of(context).colorScheme.primary),
-      ),
+      ), */
+      title: Image.asset('assets/logo.png'),
       actions: [
         IconButton(
           icon: const Icon(Icons.search),
@@ -188,7 +200,9 @@ class PaginatedAnimes extends ConsumerWidget {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: isTablet
             ? (mediaQuery.orientation == Orientation.portrait ? 4 : 7)
-            : 3, // Adjusted for tablet portrait/landscape
+            : (mediaQuery.orientation == Orientation.portrait
+                  ? 3
+                  : 4), // Adjusted for tablet portrait/landscape
         childAspectRatio: mediaQuery.orientation == Orientation.portrait
             ? 0.555
             : 0.62,

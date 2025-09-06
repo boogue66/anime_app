@@ -8,6 +8,7 @@ import 'package:anime_app/screens/login_screen.dart';
 import 'package:anime_app/screens/register_screen.dart';
 import 'package:anime_app/screens/search_screen.dart';
 import 'package:anime_app/screens/user_profile_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -17,45 +18,139 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
     routes: [
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/login',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const LoginScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+              child: child,
+            );
+          },
+        ),
+      ),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const RegisterScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+              child: child,
+            );
+          },
+        ),
       ),
-      GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+      GoRoute(
+        path: '/home',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const HomeScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+              child: child,
+            );
+          },
+        ),
+      ),
       GoRoute(
         path: '/list',
-        builder: (context, state) => const AnimeListScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const AnimeListScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1.0, 0.0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: animation, curve: Curves.elasticOut)),
+              child: FadeTransition(
+                opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+                child: child,
+              ),
+            );
+          },
+        ),
       ),
       GoRoute(
         path: '/search',
-        builder: (context, state) => const SearchScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const SearchScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+              child: child,
+            );
+          },
+        ),
       ),
       GoRoute(
         path: '/history',
-        builder: (context, state) => const HistoryScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const HistoryScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+              child: child,
+            );
+          },
+        ),
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const UserProfileScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const UserProfileScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+              child: child,
+            );
+          },
+        ),
       ),
       GoRoute(
         path: '/anime/:id',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final animeId = state.pathParameters['id']!;
-          return AnimeDetailScreen(id: animeId, slug: '');
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: AnimeDetailScreen(id: animeId, slug: ''),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+                child: child,
+              );
+            },
+          );
         },
       ),
       GoRoute(
         path: '/episode/:id',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final episodeId = state.pathParameters['id']!;
-          return EpisodePlayerScreen(
-            episodeId: episodeId,
-            videoUrl: '',
-            allEpisodes: [],
-            animeSlug: '',
-            currentEpisodeNumber: 0,
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: EpisodePlayerScreen(
+              episodeId: episodeId,
+              videoUrl: '',
+              serversFuture: Future.value([]),
+              allEpisodes: [],
+              animeSlug: '',
+              currentEpisodeNumber: 0,
+            ),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
+                child: child,
+              );
+            },
           );
         },
       ),

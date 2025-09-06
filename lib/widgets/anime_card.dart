@@ -1,8 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:anime_app/models/models.dart';
+import 'package:anime_app/models/anime_model.dart';
 import 'package:anime_app/screens/anime_detail_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Added import
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shimmer/shimmer.dart';
 
 class AnimeCard extends ConsumerWidget {
   final Anime anime;
@@ -35,8 +36,16 @@ class AnimeCard extends ConsumerWidget {
                     child: CachedNetworkImage(
                       imageUrl: anime.poster,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          const Center(child: CircularProgressIndicator()),
+                      placeholder: (context, url) => Shimmer.fromColors(
+                        baseColor: Colors.grey[300]!,
+                        highlightColor: Colors.grey[100]!,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(child: Container(color: Colors.white)),
+                          ],
+                        ),
+                      ),
                       errorWidget: (context, url, error) =>
                           const Icon(Icons.error),
                     ),

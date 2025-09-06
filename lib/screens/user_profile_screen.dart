@@ -68,6 +68,7 @@ class UserProfileScreen extends ConsumerWidget {
                             context: context,
                             builder: (context) {
                               final List<Color> colors = [
+                                const Color(0xFF22defa), // Gris azulado
                                 const Color(0xFFB0BEC5), // Gris azulado
                                 const Color(0xFF90CAF9), // Azul suave
                                 const Color(0xFF80CBC4), // Verde agua
