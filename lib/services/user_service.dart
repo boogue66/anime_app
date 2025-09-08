@@ -33,7 +33,7 @@ class UserService {
       return null;
     }
 
-    final response = await _apiService.createUser(username, email);
+    final response = await _apiService.createUser(username, email, '123456');
     if (response.containsKey('error')) {
       print('Register error: ${response['error']}');
       throw Exception(response['error'] ?? 'Failed to register');

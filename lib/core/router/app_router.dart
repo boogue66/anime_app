@@ -1,5 +1,6 @@
 import 'package:anime_app/providers/user_provider.dart';
 import 'package:anime_app/screens/anime_detail_screen.dart';
+import 'package:anime_app/screens/anime_genre_screen.dart';
 import 'package:anime_app/screens/anime_list_screen.dart';
 import 'package:anime_app/screens/episode_player_screen.dart';
 import 'package:anime_app/screens/history_screen.dart';
@@ -116,12 +117,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/anime/:id',
+        path: '/anime/:slug',
         pageBuilder: (context, state) {
-          final animeId = state.pathParameters['id']!;
+          final slug = state.pathParameters['slug']!;
           return CustomTransitionPage(
             key: state.pageKey,
-            child: AnimeDetailScreen(id: animeId, slug: ''),
+            child: AnimeDetailScreen(slug: slug),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(
                 opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
@@ -134,12 +135,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/episode/:id',
         pageBuilder: (context, state) {
-          final episodeId = state.pathParameters['id']!;
           return CustomTransitionPage(
             key: state.pageKey,
             child: EpisodePlayerScreen(
-              episodeId: episodeId,
-              videoUrl: '',
               serversFuture: Future.value([]),
               allEpisodes: [],
               animeSlug: '',
@@ -154,12 +152,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      GoRoute(
+        path: '/animes/genre/:genre',
+        builder: (context, state) {
+          final rawGenre = state.pathParameters['genre']!;
+          String genre;
+          try {
+            genre = Uri.decodeComponent(rawGenre);
+          } catch (e) {
+            // Fallback to raw genre if decoding fails
+            genre = rawGenre;
+          }
+          return AnimeGenreScreen(genre: genre);
+        },
+      ),
     ],
     redirect: (context, state) {
       final isLoggedIn = userState.asData?.value != null;
-      final isLoggingIn =
-          state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
+      final isLoggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/register';
 
       if (!isLoggedIn && !isLoggingIn) {
         return '/login';

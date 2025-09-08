@@ -15,6 +15,7 @@ class EpisodePlayerScreen extends ConsumerStatefulWidget {
   final List<Episode> allEpisodes;
   final num currentEpisodeNumber; // Changed to num
   final String animeSlug;
+  final int? totalEpisodes;
 
   const EpisodePlayerScreen({
     super.key,
@@ -22,8 +23,7 @@ class EpisodePlayerScreen extends ConsumerStatefulWidget {
     required this.allEpisodes,
     required this.currentEpisodeNumber,
     required this.animeSlug,
-    required String episodeId,
-    required String videoUrl,
+    this.totalEpisodes,
   });
 
   @override
@@ -40,6 +40,7 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
   Timer? _hideControlsTimer;
   bool _hasError = false;
   String? _finalVideoUrl;
+  final bool _isLoadingNextEpisode = false;
 
   @override
   void initState() {
@@ -78,6 +79,9 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
                     _animeSlug,
                     _currentEpisodeNumber, // Pass num directly
                   );
+              setState(() {
+                _hasError = false;
+              });
             }
           },
           onWebResourceError: (WebResourceError error) {
@@ -88,8 +92,7 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
           onNavigationRequest: (NavigationRequest request) {
             if (_finalVideoUrl == null) {
               return NavigationDecision.navigate;
-            }
-            if (request.url == _finalVideoUrl || request.url == _currentVideoUrl) {
+            } else if (request.url == _finalVideoUrl || request.url == _currentVideoUrl) {
               return NavigationDecision.navigate;
             } else {
               return NavigationDecision.prevent;
@@ -133,6 +136,10 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentEpisodeIndex = _allEpisodes.indexWhere((e) => e.episode == _currentEpisodeNumber);
+    final isLastEpisode =
+        currentEpisodeIndex == -1 || currentEpisodeIndex == _allEpisodes.length - 1;
+
     return Scaffold(
       body: FutureBuilder<List<ServerElement>>(
         future: widget.serversFuture,
@@ -154,6 +161,14 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
               fit: StackFit.expand,
               children: [
                 if (_controller != null) WebViewWidget(controller: _controller!),
+                /* if (_hasError)
+                  const Center(
+                    child: Text(
+                      'Error al cargar el video. Intenta de nuevo.',
+                      style: TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                  ), */
+                if (_isLoadingNextEpisode) const Center(child: CircularProgressIndicator()),
 
                 // Top gesture detector area
                 Positioned(
@@ -186,7 +201,7 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                            colors: [Colors.black.withAlpha(200), Colors.transparent],
                           ),
                         ),
                         child: Row(
@@ -206,26 +221,38 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
                                   ),
                                 ),
                                 minimumSize: const Size(150, 70),
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                foregroundColor: Colors.white,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withAlpha(220),
+                                foregroundColor: Colors.black,
                               ),
                             ),
-                            ElevatedButton.icon(
-                              onPressed: _playNextEpisode,
-                              icon: const Icon(Icons.skip_next),
-                              label: const Text('Siguiente'),
-                              style: ElevatedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(20.0),
-                                    bottomLeft: Radius.circular(20.0),
+                            if (!isLastEpisode) // Conditionally render the Next Episode button
+                              ElevatedButton.icon(
+                                onPressed: _playNextEpisode,
+                                icon: const Icon(Icons.skip_next),
+                                label: const Text(
+                                  'Next Episode',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                minimumSize: const Size(150, 70),
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                foregroundColor: Colors.white,
+                                style: ElevatedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(20.0),
+                                      bottomLeft: Radius.circular(20.0),
+                                    ),
+                                  ),
+                                  minimumSize: const Size(150, 70),
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withAlpha(220),
+                                  foregroundColor: Colors.black,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -281,6 +308,12 @@ class _EpisodePlayerScreenState extends ConsumerState<EpisodePlayerScreen> {
           _hasError = false;
           _finalVideoUrl = null;
         });
+        ref
+            .read(historyProvider.notifier)
+            .addOrUpdateHistory(
+              _animeSlug,
+              _currentEpisodeNumber, // Pass num directly
+            );
         _controller?.loadRequest(Uri.parse(_currentVideoUrl!));
         _startHideControlsTimer();
 

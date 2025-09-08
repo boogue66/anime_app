@@ -21,36 +21,13 @@ class AnimeService {
         print('Response from $endpoint is null.');
         return [];
       }
-      List<dynamic>? listData;
-      if (response.data is List) {
-        listData = response.data;
-      } else if (response.data is Map) {
-        final responseMap = response.data as Map<String, dynamic>;
-        if (responseMap['data'] is List) {
-          listData = responseMap['data'];
-        } else if (responseMap['docs'] is List) {
-          listData = responseMap['docs'];
-        } else if (responseMap['episodes'] is List) {
-          listData = responseMap['episodes'];
-        } else if (responseMap['results'] is List) {
-          listData = responseMap['results'];
-        } else {
-          // Fallback: find first list in map
-          for (var value in responseMap.values) {
-            if (value is List) {
-              listData = value;
-              break;
-            }
-          }
-        }
-      }
+      // As per swagger.yaml, paginated responses use 'docs' key
+      final listData = response.data['docs'] as List<dynamic>?;
 
       if (listData != null) {
         return listData.map((item) => Anime.fromJson(item)).toList();
       } else {
-        print(
-          'Could not find a list in response from $endpoint. Response: ${response.data}',
-        );
+        print('Could not find \'docs\' key in response from $endpoint. Response: ${response.data}');
         return [];
       }
     } catch (e) {
@@ -64,87 +41,49 @@ class AnimeService {
     }
   }
 
-  Future<List<Episode>> getLatestEpisodes() =>
-      _getEpisodeList('/api/animes/list/latest-episodes');
+  Future<List<Anime>> getLatestEpisodes() => _getAnimeList('/api/animes/list/latest-episodes?limit=30');
 
-  Future<List<Episode>> _getEpisodeList(String endpoint) async {
-    try {
-      final response = await _dio.get(endpoint);
-      if (response.data == null) {
-        print('Response from $endpoint is null.');
-        return [];
-      }
-      List<dynamic>? listData;
-      if (response.data is List) {
-        listData = response.data;
-      } else if (response.data is Map) {
-        final responseMap = response.data as Map<String, dynamic>;
-        if (responseMap['data'] is List) {
-          listData = responseMap['data'];
-        } else if (responseMap['docs'] is List) {
-          listData = responseMap['docs'];
-        } else if (responseMap['episodes'] is List) {
-          listData = responseMap['episodes'];
-        } else if (responseMap['results'] is List) {
-          listData = responseMap['results'];
-        } else {
-          // Fallback: find first list in map
-          for (var value in responseMap.values) {
-            if (value is List) {
-              listData = value;
-              break;
-            }
-          }
-        }
-      }
+  Future<List<Anime>> getLatestAnimes() => _getAnimeList('/api/animes/list/latest-animes?limit=30');
 
-      if (listData != null) {
-        return listData.map((item) => Episode.fromJson(item)).toList();
-      } else {
-        print(
-          'Could not find a list in response from $endpoint. Response: ${response.data}',
-        );
-        return [];
-      }
-    } catch (e) {
-      // Adding more detailed error logging
-      String errorMessage = 'Error fetching episode list from $endpoint: $e';
-      if (e is DioException) {
-        errorMessage += '\nResponse: ${e.response?.data}';
-      }
-      print(errorMessage);
-      return [];
-    }
+  Future<List<Anime>> getOnAirAnimes() => _getAnimeList('/api/animes/list/on-air');
+
+  Future<List<Anime>> getComingSoonAnimes() => _getAnimeList('/api/animes/list/coming-soon');
+
+  Future<List<Anime>> getAnimes({int page = 1, int limit = 25, String sort = 'desc'}) {
+    return _getAnimeList('/api/animes?page=$page&limit=$limit&sort=$sort');
   }
 
-  Future<List<Anime>> getLatestAnimes() =>
-      _getAnimeList('/api/animes/list/latest-animes');
-
-  Future<List<Anime>> getOnAirAnimes() =>
-      _getAnimeList('/api/animes/list/on-air');
-
-  Future<List<Anime>> getFinishedAnimes() =>
-      _getAnimeList('/api/animes/list/finished');
-
-  Future<List<Anime>> getComingSoonAnimes() =>
-      _getAnimeList('/api/animes/list/coming-soon');
-
-  Future<List<Anime>> getAnimes({int page = 1}) {
-    return _getAnimeList('/api/animes?page=$page');
+  Future<List<Anime>> searchAnimes(
+    String query, {
+    int page = 1,
+    int limit = 25,
+    String sort = 'desc',
+  }) {
+    return _getAnimeList('/api/animes/search?query=$query&page=$page&limit=$limit&sort=$sort');
   }
 
-  Future<List<Anime>> searchAnimes(String query, {int page = 1}) {
-    return _getAnimeList('/api/animes/search?query=$query&page=$page');
+  Future<List<Anime>> filterAnimes(
+    Map<String, dynamic> filters, {
+    int page = 1,
+    int limit = 25,
+    String sort = 'desc',
+  }) {
+    final queryParameters = {
+      'page': page.toString(),
+      'limit': limit.toString(),
+      'sort': sort,
+    };
+    // Remove page, limit, sort from filters if they were mistakenly added to body
+    final bodyFilters = Map<String, dynamic>.from(filters);
+    bodyFilters.remove('page');
+    bodyFilters.remove('limit');
+    bodyFilters.remove('sort');
+
+    final uri = Uri.parse('/api/animes/search/by-filter').replace(queryParameters: queryParameters);
+    return _postAnimeList(uri.toString(), bodyFilters);
   }
 
-  Future<List<Anime>> filterAnimes(Map<String, dynamic> filters) {
-    return _postAnimeList('/api/animes/search/by-filter', filters);
-  }
-
-  Future<List<Anime>> _postAnimeList(
-    String endpoint,
-    Map<String, dynamic> data,
-  ) async {
+  Future<List<Anime>> _postAnimeList(String endpoint, Map<String, dynamic> data) async {
     try {
       final response = await _dio.post(endpoint, data: data);
       if (response.data == null) {
@@ -152,35 +91,13 @@ class AnimeService {
         return [];
       }
 
-      List<dynamic>? listData;
-
-      if (response.data is List) {
-        listData = response.data;
-      } else if (response.data is Map) {
-        final responseMap = response.data as Map<String, dynamic>;
-        if (responseMap['data'] is List) {
-          listData = responseMap['data'];
-        } else if (responseMap['docs'] is List) {
-          listData = responseMap['docs'];
-        } else if (responseMap['results'] is List) {
-          listData = responseMap['results'];
-        } else {
-          // Fallback: find first list in map
-          for (var value in responseMap.values) {
-            if (value is List) {
-              listData = value;
-              break;
-            }
-          }
-        }
-      }
+      // As per swagger.yaml, paginated responses use 'docs' key
+      final listData = response.data['docs'] as List<dynamic>?;
 
       if (listData != null) {
         return listData.map((item) => Anime.fromJson(item)).toList();
       } else {
-        print(
-          'Could not find a list in response from $endpoint. Response: ${response.data}',
-        );
+        print('Could not find \'docs\' key in response from $endpoint. Response: ${response.data}');
         return [];
       }
     } catch (e) {
@@ -198,11 +115,14 @@ class AnimeService {
     String slug, {
     int page = 1,
     int limit = 25,
+    String? sort,
   }) async {
     try {
-      final response = await _dio.get(
-        '/api/animes/$slug?page=$page&limit=$limit',
-      );
+      var endpoint = '/api/animes/$slug?page=$page&limit=$limit';
+      if (sort != null) {
+        endpoint += '&sort=$sort';
+      }
+      final response = await _dio.get(endpoint);
       return Anime.fromJson(response.data);
     } catch (e) {
       print('Error fetching anime details for $slug: $e');
@@ -214,11 +134,14 @@ class AnimeService {
     String slug, {
     int page = 1,
     int limit = 25,
+    String? sort,
   }) async {
     try {
-      final response = await _dio.get(
-        '/api/animes/$slug/episodes?page=$page&limit=$limit',
-      );
+      var endpoint = '/api/animes/$slug/episodes?page=$page&limit=$limit';
+      if (sort != null) {
+        endpoint += '&sort=$sort';
+      }
+      final response = await _dio.get(endpoint);
       return PaginatedEpisodesResponse.fromJson(response.data);
     } catch (e) {
       print('Error fetching episodes for $slug: $e');
@@ -226,19 +149,43 @@ class AnimeService {
     }
   }
 
-  Future<List<ServerElement>> getEpisodeServers(
-    String slug,
-    int episodeNumber,
-  ) async {
+  Future<List<ServerElement>> getEpisodeServers(String slug, int episodeNumber) async {
     try {
-      final response = await _dio.get(
-        '/api/animes/$slug/episodes/$episodeNumber',
-      );
+      final response = await _dio.get('/api/animes/$slug/episodes/$episodeNumber');
       final data = response.data as List;
       return data.map((item) => ServerElement.fromJson(item)).toList();
     } catch (e) {
       print('Error fetching servers for $slug episode $episodeNumber: $e');
       return [];
+    }
+  }
+
+  Future<Anime> createAnime(Anime anime) async {
+    try {
+      final response = await _dio.post('/api/animes/new', data: anime.toJson());
+      return Anime.fromJson(response.data);
+    } catch (e) {
+      print('Error creating anime: $e');
+      rethrow;
+    }
+  }
+
+  Future<Anime> updateAnime(String id, Anime anime) async {
+    try {
+      final response = await _dio.put('/api/animes/$id', data: anime.toJson());
+      return Anime.fromJson(response.data);
+    } catch (e) {
+      print('Error updating anime $id: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAnime(String id) async {
+    try {
+      await _dio.delete('/api/animes/$id');
+    } catch (e) {
+      print('Error deleting anime $id: $e');
+      rethrow;
     }
   }
 }

@@ -1,16 +1,23 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:anime_app/models/history_anime_model.dart';
+import 'package:anime_app/models/history_model.dart';
 import 'package:anime_app/providers/history_provider.dart';
 import 'package:anime_app/screens/anime_detail_screen.dart';
 
 class HistoryCard extends ConsumerWidget {
-  final HistoryAnime item;
+  final History item;
+
   const HistoryCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final anime = item.anime;
+
+    if (anime == null) {
+      return const SizedBox.shrink(); // Or a placeholder if anime data is missing
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       child: InkWell(
@@ -18,9 +25,7 @@ class HistoryCard extends ConsumerWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  AnimeDetailScreen(slug: item.anime.slug, id: item.anime.id),
-            ),
+                builder: (context) => AnimeDetailScreen(slug: anime.slug)),
           );
         },
         child: Padding(
@@ -33,7 +38,7 @@ class HistoryCard extends ConsumerWidget {
                 child: CachedNetworkImage(
                   width: 50,
                   height: 70,
-                  imageUrl: item.anime.poster,
+                  imageUrl: anime.poster,
                   fit: BoxFit.cover,
                   placeholder: (context, url) =>
                       const Center(child: CircularProgressIndicator()),
@@ -48,7 +53,7 @@ class HistoryCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      item.anime.title,
+                      anime.title,
                       style: const TextStyle(
                         fontSize: 14, // Reduced font size
                         fontWeight: FontWeight.bold,
@@ -57,7 +62,7 @@ class HistoryCard extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      'Ultimo Episodio Visto ${item.history.lastEpisode}',
+                      'Ultimo Episodio Visto ${item.lastEpisode}',
                       style: const TextStyle(fontSize: 12),
                     ), // Reduced font size
                     Row(
@@ -74,45 +79,36 @@ class HistoryCard extends ConsumerWidget {
                             color: Theme.of(context).colorScheme.primary,
                             fontSize: 12, // Reduced font size
                           ),
-                          value: item.history.status,
+                          value: item.status,
                           onChanged: (String? newValue) {
                             if (newValue != null) {
                               ref
                                   .read(historyProvider.notifier)
                                   .addOrUpdateHistory(
-                                    item.anime.slug,
-                                    item.history.lastEpisode,
+                                    anime.slug,
+                                    item.lastEpisode,
                                     status: newValue,
                                   );
                             }
                           },
                           items: <String>['watching', 'completed']
-                              .map<DropdownMenuItem<String>>((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value),
-                                );
-                              })
-                              .toList(),
+                              .map<DropdownMenuItem<String>>((
+                            String value,
+                          ) {
+                            return DropdownMenuItem<String>(
+                                value: value, child: Text(value));
+                          }).toList(),
                         ),
                       ],
-                    ),
-                    Text(
-                      'Updated: ${item.history.updatedAt.toLocal().toString().split('.')[0]}',
-                      style: const TextStyle(fontSize: 10), // Reduced font size
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: Icon(
-                  Icons.delete,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                icon: Icon(Icons.delete,
+                    color: Theme.of(context).colorScheme.primary),
                 onPressed: () {
-                  ref
-                      .read(historyProvider.notifier)
-                      .removeHistory(item.anime.slug);
+                  ref.read(historyProvider.notifier).removeHistory(anime.slug);
                 },
               ),
             ],

@@ -1,29 +1,46 @@
+import 'package:anime_app/models/history_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:anime_app/providers/history_provider.dart';
 import 'package:anime_app/providers/user_provider.dart';
 import 'package:anime_app/widgets/history_card.dart';
 
-final selectedHistoryStatusProvider = StateProvider<String>(
-  (ref) => 'watching',
-); // Default to 'watching'
+final selectedHistoryStatusProvider = StateProvider<String>((ref) => 'watching');
 
-class HistoryScreen extends ConsumerWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedStatus = ref.watch(selectedHistoryStatusProvider);
-    final historyAsyncValue = ref.watch(historyProvider);
-    final userAsyncValue = ref.watch(userProvider);
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
 
-    if (userAsyncValue.value == null) {
-      return const Center(
-        child: Text(
-          'Please log in to view your history.',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-      );
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  final List<History> _listItems = [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncList();
+  }
+
+  void _syncList() {
+    final history = ref.watch(historyProvider).value ?? [];
+    final selectedStatus = ref.watch(selectedHistoryStatusProvider);
+    _listItems.clear();
+    _listItems.addAll(history.where((item) => item.status == selectedStatus).toList());
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(historyProvider, (_, _) => _syncList());
+    ref.listen(selectedHistoryStatusProvider, (_, _) => _syncList());
+
+    final historyAsync = ref.watch(historyProvider);
+    final userAsync = ref.watch(userProvider);
+
+    if (userAsync.value == null) {
+      return const Center(child: Text('Please log in to view your history.'));
     }
 
     return Scaffold(
@@ -32,89 +49,59 @@ class HistoryScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      ref.read(selectedHistoryStatusProvider.notifier).state =
-                          'watching';
-                    },
+                    onPressed: () =>
+                        ref.read(selectedHistoryStatusProvider.notifier).state = 'watching',
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: selectedStatus == 'watching'
+                      backgroundColor: ref.watch(selectedHistoryStatusProvider) == 'watching'
                           ? Theme.of(context).primaryColor
                           : null,
                     ),
-                    child: const Text(
-                      'Viendo',
-                      style: TextStyle(color: Colors.black),
-                    ),
+                    child: const Text('Viendo', style: TextStyle(color: Colors.black)),
                   ),
                 ),
                 const SizedBox(width: 8.0),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      ref.read(selectedHistoryStatusProvider.notifier).state =
-                          'completed';
-                    },
+                    onPressed: () =>
+                        ref.read(selectedHistoryStatusProvider.notifier).state = 'completed',
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: selectedStatus == 'completed'
+                      backgroundColor: ref.watch(selectedHistoryStatusProvider) == 'completed'
                           ? Theme.of(context).primaryColor
                           : null,
                     ),
-                    child: const Text(
-                      'Finished',
-                      style: TextStyle(color: Colors.black),
-                    ),
+                    child: const Text('Finished', style: TextStyle(color: Colors.black)),
                   ),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: historyAsyncValue.when(
-              data: (historyAnimeList) {
-                if (historyAnimeList.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No history found. Start watching some animes!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  );
+            child: historyAsync.when(
+              data: (_) {
+                if (_listItems.isEmpty) {
+                  return const Center(child: Text('No items in this category.'));
                 }
-
-                final filteredAnimes = historyAnimeList
-                    .where((item) => item.history.status == selectedStatus)
-                    .toList();
-
-                if (filteredAnimes.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No $selectedStatus animes found.',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                final selectedStatus = ref.watch(selectedHistoryStatusProvider);
+                return AnimatedList(
+                  key: ValueKey(selectedStatus),
+                  initialItemCount: _listItems.length,
+                  itemBuilder: (context, index, animation) {
+                    final item = _listItems[index];
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SizeTransition(
+                        sizeFactor: animation,
+                        child: HistoryCard(item: item),
                       ),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: filteredAnimes.length,
-                  itemBuilder: (context, index) {
-                    final item = filteredAnimes[index];
-                    return HistoryCard(item: item);
+                    );
                   },
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Text('Error loading history: ${error.toString()}'),
-              ),
+              error: (e, st) => Center(child: Text(e.toString())),
             ),
           ),
         ],

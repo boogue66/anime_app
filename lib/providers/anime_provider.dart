@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // --- Providers for Anime Lists ---
 
 /// Provider para obtener los últimos episodios agregados.
-final latestEpisodesProvider = FutureProvider<List<Episode>>((ref) {
+final latestEpisodesProvider = FutureProvider<List<Anime>>((ref) {
   final animeService = ref.watch(animeServiceProvider);
   return animeService.getLatestEpisodes();
 });
@@ -23,11 +23,13 @@ final onAirAnimesProvider = FutureProvider<List<Anime>>((ref) {
   return animeService.getOnAirAnimes();
 });
 
+/*
 /// Provider para obtener la lista de animes finalizados.
 final finishedAnimesProvider = FutureProvider<List<Anime>>((ref) {
   final animeService = ref.watch(animeServiceProvider);
   return animeService.getFinishedAnimes();
 });
+*/
 
 /// Provider para obtener la lista de próximos animes.
 final comingSoonAnimesProvider = FutureProvider<List<Anime>>((ref) {
@@ -44,9 +46,9 @@ final animeDetailProvider = FutureProvider.family<Anime, String>((ref, slug) {
 });
 
 /// Provider para obtener la lista de episodios de un anime por su slug.
-final episodeListProvider = FutureProvider.family<PaginatedEpisodesResponse, ({String slug, int page, int limit})>((ref, params) {
+final episodeListProvider = FutureProvider.family<PaginatedEpisodesResponse, ({String slug, int page, int limit, String? sort})>((ref, params) {
   final animeService = ref.watch(animeServiceProvider);
-  return animeService.getAnimeEpisodes(params.slug, page: params.page, limit: params.limit);
+  return animeService.getAnimeEpisodes(params.slug, page: params.page, limit: params.limit, sort: params.sort);
 });
 
 /// Provider para mantener el estado del episodio seleccionado.
@@ -64,22 +66,26 @@ class PaginatedAnimesState {
   final List<Anime> animes;
   final int page;
   final bool isLoading;
+  final bool hasMore;
 
   PaginatedAnimesState({
     this.animes = const [],
     this.page = 1,
     this.isLoading = false,
+    this.hasMore = true,
   });
 
   PaginatedAnimesState copyWith({
     List<Anime>? animes,
     int? page,
     bool? isLoading,
+    bool? hasMore,
   }) {
     return PaginatedAnimesState(
       animes: animes ?? this.animes,
       page: page ?? this.page,
       isLoading: isLoading ?? this.isLoading,
+      hasMore: hasMore ?? this.hasMore,
     );
   }
 }
@@ -92,16 +98,17 @@ class PaginatedAnimesNotifier extends StateNotifier<PaginatedAnimesState> {
   }
 
   Future<void> fetchNextPage() async {
-    if (state.isLoading) return;
+    if (state.isLoading || !state.hasMore) return;
 
     state = state.copyWith(isLoading: true);
 
-    final newAnimes = await _animeService.getAnimes(page: state.page);
+    final newAnimes = await _animeService.getAnimes(page: state.page, limit: 25, sort: 'desc');
 
     state = state.copyWith(
       animes: [...state.animes, ...newAnimes],
       page: state.page + 1,
       isLoading: false,
+      hasMore: newAnimes.isNotEmpty,
     );
   }
 }
@@ -109,4 +116,40 @@ class PaginatedAnimesNotifier extends StateNotifier<PaginatedAnimesState> {
 final paginatedAnimesProvider = StateNotifierProvider<PaginatedAnimesNotifier, PaginatedAnimesState>((ref) {
   final animeService = ref.watch(animeServiceProvider);
   return PaginatedAnimesNotifier(animeService);
+});
+
+// --- Provider for Paginated Animes by Genre ---
+
+class PaginatedAnimesByGenreNotifier extends StateNotifier<PaginatedAnimesState> {
+  final AnimeService _animeService;
+  final String genre;
+
+  PaginatedAnimesByGenreNotifier(this._animeService, this.genre) : super(PaginatedAnimesState()) {
+    fetchNextPage();
+  }
+
+  Future<void> fetchNextPage() async {
+    if (state.isLoading || !state.hasMore) return;
+
+    state = state.copyWith(isLoading: true);
+
+    final newAnimes = await _animeService.filterAnimes(
+      {'genres': [genre]},
+      page: state.page,
+      limit: 25,
+      sort: 'desc',
+    );
+
+    state = state.copyWith(
+      animes: [...state.animes, ...newAnimes],
+      page: state.page + 1,
+      isLoading: false,
+      hasMore: newAnimes.isNotEmpty,
+    );
+  }
+}
+
+final paginatedAnimesByGenreProvider = StateNotifierProvider.family<PaginatedAnimesByGenreNotifier, PaginatedAnimesState, String>((ref, genre) {
+  final animeService = ref.watch(animeServiceProvider);
+  return PaginatedAnimesByGenreNotifier(animeService, genre);
 });

@@ -87,19 +87,19 @@ class ApiService {
   Future<List<Map<String, dynamic>>> getAllUsers() async {
     try {
       final response = await _dio.get('/api/users');
-      // Assuming the API returns a structure like { "data": { "users": [...] } }
-      return List<Map<String, dynamic>>.from(response.data['data']['users']);
+      // As per swagger.yaml, paginated responses use 'docs' key
+      return List<Map<String, dynamic>>.from(response.data['docs']);
     } catch (e) {
       print('Error getting all users: $e');
       return [];
     }
   }
 
-  Future<Map<String, dynamic>> createUser(String username, String email) async {
+  Future<Map<String, dynamic>> createUser(String username, String email, String password) async {
     try {
       final response = await _dio.post(
         '/api/users',
-        data: {'username': username, 'email': email},
+        data: {'username': username, 'email': email, 'password': password},
       );
       return response.data;
     } on DioException catch (e) {

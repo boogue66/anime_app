@@ -15,7 +15,7 @@ class AnimeCategoriesScreen extends ConsumerWidget {
     'Artes Marciales',
     'Aventuras',
     'Carreras',
-    'Ciencia Ficción',
+    'Ciencia Ficcion',
     'Comedia',
     'Demencia',
     'Demonios',
@@ -24,7 +24,7 @@ class AnimeCategoriesScreen extends ConsumerWidget {
     'Ecchi',
     'Escolares',
     'Espacial',
-    'Fantasía',
+    'Fantasia',
     'Harem',
     'Historico',
     'Infantil',
@@ -34,10 +34,10 @@ class AnimeCategoriesScreen extends ConsumerWidget {
     'Mecha',
     'Militar',
     'Misterio',
-    'Música',
+    'Musica',
     'Parodia',
-    'Policía',
-    'Psicológico',
+    'Policia',
+    'Psicologico',
     'Recuentos de la vida',
     'Romance',
     'Samurai',
@@ -124,12 +124,8 @@ class FilterResults extends ConsumerWidget {
         final isTablet = mediaQuery.size.shortestSide >= 600;
         return GridView.builder(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: isTablet
-                ? (mediaQuery.orientation == Orientation.portrait ? 4 : 7)
-                : 3,
-            childAspectRatio: mediaQuery.orientation == Orientation.portrait
-                ? 0.555
-                : 0.62,
+            crossAxisCount: isTablet ? (mediaQuery.orientation == Orientation.portrait ? 4 : 7) : 3,
+            childAspectRatio: mediaQuery.orientation == Orientation.portrait ? 0.555 : 0.62,
             crossAxisSpacing: 5.0,
             mainAxisSpacing: 5.0,
           ),
@@ -142,8 +138,7 @@ class FilterResults extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) =>
-          const Center(child: Text('An error occurred.')),
+      error: (error, stackTrace) => const Center(child: Text('An error occurred.')),
     );
   }
 }

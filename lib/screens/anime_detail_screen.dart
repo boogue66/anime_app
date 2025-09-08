@@ -1,15 +1,19 @@
+import 'dart:ui';
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:anime_app/models/anime_model.dart';
 import 'package:anime_app/providers/anime_provider.dart';
 import 'package:anime_app/screens/episode_player_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:anime_app/models/episode_model.dart';
+
 import 'package:anime_app/providers/history_provider.dart';
 
 class AnimeDetailScreen extends ConsumerStatefulWidget {
   final String slug;
-  const AnimeDetailScreen({super.key, required this.slug, required String id});
+  const AnimeDetailScreen({super.key, required this.slug});
 
   @override
   ConsumerState<AnimeDetailScreen> createState() => _AnimeDetailScreenState();
@@ -57,13 +61,15 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    CachedNetworkImage(
-                      imageUrl: anime.poster,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          const Center(child: CircularProgressIndicator()),
-                      errorWidget: (context, url, error) =>
-                          const Icon(Icons.error),
+                    ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 1.5, sigmaY: 1.5),
+                      child: CachedNetworkImage(
+                        imageUrl: anime.poster,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) =>
+                            const Center(child: CircularProgressIndicator()),
+                        errorWidget: (context, url, error) => const Icon(Icons.error),
+                      ),
                     ),
                     const DecoratedBox(
                       decoration: BoxDecoration(
@@ -114,23 +120,22 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
             Flexible(
               flex: 2,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12.0,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Center(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12.0),
-                        child: CachedNetworkImage(
-                          imageUrl: anime.poster,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) =>
-                              const Center(child: CircularProgressIndicator()),
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.error),
+                        child: ImageFiltered(
+                          imageFilter: ImageFilter.blur(sigmaX: 1.5, sigmaY: 1.5),
+                          child: CachedNetworkImage(
+                            imageUrl: anime.poster,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) =>
+                                const Center(child: CircularProgressIndicator()),
+                            errorWidget: (context, url, error) => const Icon(Icons.error),
+                          ),
                         ),
                       ),
                     ),
@@ -161,8 +166,7 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
                         slug: widget.slug,
                         isAscending: _isAscendingOrder,
                         isSliver: false,
-                        totalEpisodes:
-                            anime.episodesPagination?.totalEpisodes ?? 0,
+                        totalEpisodes: anime.episodesPagination?.totalEpisodes ?? 0,
                       ),
                     ),
                   ],
@@ -189,10 +193,7 @@ class _AnimeDetails extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Sinopsis',
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('Sinopsis', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Text(
             anime.description ?? 'No description available.',
@@ -200,10 +201,7 @@ class _AnimeDetails extends StatelessWidget {
             textAlign: TextAlign.justify,
           ),
           const SizedBox(height: 16),
-          Text(
-            'Géneros',
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text('Géneros', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8.0,
@@ -211,9 +209,22 @@ class _AnimeDetails extends StatelessWidget {
             children: anime.genres
                 .map(
                   (genre) => InputChip(
+                    selected: true,
+
+                    isEnabled: true,
+                    selectedColor: Theme.of(context).colorScheme.primary.withAlpha(15),
+                    visualDensity: VisualDensity(
+                      horizontal: VisualDensity.minimumDensity,
+                      vertical: VisualDensity.minimumDensity,
+                    ),
+                    backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(10),
+                    disabledColor: Theme.of(context).colorScheme.primary.withAlpha(10),
                     label: Text(genre),
                     elevation: 0,
-                    selected: true,
+                    onPressed: () {
+                      final sanitizedGenre = genre.replaceAll('%', '%25');
+                      context.push('/animes/genre/${Uri.encodeComponent(sanitizedGenre)}');
+                    },
                   ),
                 )
                 .toList(),
@@ -228,10 +239,7 @@ class _EpisodeListHeader extends StatelessWidget {
   final bool isAscending;
   final VoidCallback onSortPressed;
 
-  const _EpisodeListHeader({
-    required this.isAscending,
-    required this.onSortPressed,
-  });
+  const _EpisodeListHeader({required this.isAscending, required this.onSortPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -250,16 +258,13 @@ class _EpisodeListHeader extends StatelessWidget {
           children: [
             Text(
               'Episodios',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black),
             ),
             IconButton(
               icon: Icon(
-                isAscending
-                    ? Icons.keyboard_double_arrow_up
-                    : Icons.keyboard_double_arrow_down,
+                isAscending ? Icons.keyboard_double_arrow_up : Icons.keyboard_double_arrow_down,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               tooltip: 'Ordenar episodios',
@@ -331,7 +336,7 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
       if (widget.isSliver) {
         return SliverList(
           delegate: SliverChildBuilderDelegate(
-            (context, index) => _buildGroupTile(context, index, totalGroups),
+            (context, index) => _buildGroupTile(context, index, totalGroups, widget.isAscending),
             childCount: totalGroups,
           ),
         );
@@ -342,12 +347,8 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
             primary: false, // Important for nested scroll views
             shrinkWrap: true, // Important for nested scroll views
             itemCount: totalGroups,
-            itemBuilder: (context, index) {
-              final actualIndex = widget.isAscending
-                  ? index
-                  : totalGroups - 1 - index;
-              return _buildGroupTile(context, actualIndex, totalGroups);
-            },
+            itemBuilder: (context, index) =>
+                _buildGroupTile(context, index, totalGroups, widget.isAscending),
           ),
         );
       }
@@ -355,13 +356,9 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
   }
 
   Widget _buildSimpleEpisodeList(BuildContext context) {
-    if (widget.totalEpisodes <= 25) {
-      return _buildSimpleEpisodeList(context);
-    } else if (_episodesByGroup[0] == null || _episodesByGroup[0]!.isEmpty) {
+    if (_episodesByGroup[0] == null || _episodesByGroup[0]!.isEmpty) {
       return widget.isSliver
-          ? const SliverToBoxAdapter(
-              child: Center(child: CircularProgressIndicator()),
-            )
+          ? const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()))
           : const Center(child: CircularProgressIndicator());
     } else {
       final episodes = _episodesByGroup[0]!;
@@ -375,21 +372,29 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
       } else {
         return ListView.builder(
           itemCount: episodes.length,
-          itemBuilder: (context, index) =>
-              _buildEpisodeTile(context, episodes[index]),
+          itemBuilder: (context, index) => _buildEpisodeTile(context, episodes[index]),
         );
       }
     }
   }
 
-  Widget _buildGroupTile(
-    BuildContext context,
-    int actualIndex,
-    int totalGroups,
-  ) {
-    final groupStart = actualIndex * 25 + 1;
-    final groupEnd = groupStart + 24;
+  Widget _buildGroupTile(BuildContext context, int index, int totalGroups, bool isAscending) {
+    final int groupStart;
+    final int groupEnd;
+
+    if (isAscending) {
+      groupStart = index * 25 + 1;
+      groupEnd = min(groupStart + 24, widget.totalEpisodes);
+    } else {
+      // Descending
+      groupEnd = widget.totalEpisodes - (index * 25);
+      groupStart = max(1, groupEnd - 24);
+    }
+
     final groupTitle = 'Episodios $groupStart - $groupEnd';
+
+    // The key for caching and fetching should be consistent with the tile's position
+    final tileIndex = index;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
@@ -400,42 +405,33 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
           color: Theme.of(context).colorScheme.primary.withAlpha(50),
         ),
         child: ExpansionTile(
-          // This is the line that was causing the error
-          key: ValueKey('${actualIndex}_${widget.isAscending}'),
+          key: ValueKey(tileIndex),
           expansionAnimationStyle: AnimationStyle(
             curve: Curves.easeIn,
             duration: const Duration(milliseconds: 500),
             reverseCurve: Curves.bounceOut,
             reverseDuration: const Duration(milliseconds: 500),
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
           tilePadding: const EdgeInsets.all(2),
           backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(10),
-          collapsedShape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
-          ),
+          collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
           title: Padding(
-            // This is the line that was causing the error
             padding: const EdgeInsets.all(8.0),
             child: Text(
               groupTitle,
-              style: const TextStyle(
-                color: Colors.white60,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(color: Colors.white60, fontWeight: FontWeight.bold),
             ),
           ),
           onExpansionChanged: (isExpanding) {
-            if (isExpanding && _episodesByGroup[actualIndex] == null) {
-              final page = actualIndex + 1; // Calculate page here
-              _fetchEpisodesForGroup(actualIndex, page); // Pass page directly
+            if (isExpanding && _episodesByGroup[tileIndex] == null) {
+              final page = tileIndex + 1;
+              _fetchEpisodesForGroup(tileIndex, page);
             }
           },
-          children: _isLoadingGroup[actualIndex] ?? false
+          children: _isLoadingGroup[tileIndex] ?? false
               ? [const Center(child: CircularProgressIndicator())]
-              : _episodesByGroup[actualIndex]
+              : _episodesByGroup[tileIndex]
                         ?.map((episode) => _buildEpisodeTile(context, episode))
                         .toList() ??
                     [],
@@ -454,21 +450,17 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
     });
 
     final actualLimit = limit ?? 25;
-    final totalPages = (widget.totalEpisodes / actualLimit).ceil();
-
-    // Calculate the actual page to request from the API
-    // If requestedPage is 1 (for episodes 1-50), we need to request the last page from the API.
-    // If requestedPage is totalPages (for latest episodes), we need to request page 1 from the API.
-    final apiPage = totalPages - requestedPage + 1;
 
     try {
       final response = await ref.read(
         episodeListProvider((
           slug: widget.slug,
-          page: apiPage, // Use the adjusted apiPage
+          page: requestedPage, // Use the requestedPage directly
           limit: actualLimit,
+          sort: widget.isAscending ? 'asc' : 'desc',
         )).future,
       );
+      // ignore: avoid_print
       print('Fetched episodes length: ${response.episodes.length}');
       final sortedEpisodes = _sortEpisodes(response.episodes);
       setState(() {
@@ -497,23 +489,46 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
 
   Widget _buildEpisodeTile(BuildContext context, Episode episode) {
     final totalEpisodes = widget.totalEpisodes;
+    final bool isAvailable = episode.servers.isNotEmpty;
+
+    // Format the episode number to show decimals only when necessary.
+    String episodeNumberText;
+    if (episode.episode % 1 != 0) {
+      // It has a fractional part (e.g., 3.1)
+      episodeNumberText = episode.episode.toString();
+    } else {
+      // It's an integer or a whole double (e.g., 3 or 3.0)
+      episodeNumberText = episode.episode.toInt().toString();
+    }
+
+    final titleText = 'Episodio $episodeNumberText';
+
     return Padding(
       padding: totalEpisodes <= 25
           ? const EdgeInsets.symmetric(vertical: 3, horizontal: 16)
           : const EdgeInsets.all(2.0),
       child: ListTile(
         tileColor: const Color(0xDD292929),
-        title: Text(
-          'Episodio ${episode.episode}',
-          style: const TextStyle(color: Colors.white),
-        ),
-        trailing: const Icon(Icons.play_circle_outline, color: Colors.red),
-        onTap: () => _playEpisode(
-          context,
-          ref,
-          episode,
-          _episodesByGroup.values.expand((x) => x).toList(),
-        ),
+        title: isAvailable
+            ? Text(titleText, style: const TextStyle(color: Colors.white))
+            : Text(
+                '$titleText (No disponible)',
+                style: const TextStyle(color: Colors.red, fontSize: 14),
+              ),
+        trailing: isAvailable
+            ? Icon(
+                Icons.play_circle_outline,
+                color: Theme.of(context).colorScheme.primary.withAlpha(100),
+              )
+            : null,
+        onTap: isAvailable
+            ? () => _playEpisode(
+                context,
+                ref,
+                episode,
+                _episodesByGroup.values.expand((x) => x).toList(),
+              )
+            : null,
       ),
     );
   }
@@ -524,16 +539,17 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
     Episode episode,
     List<Episode> allEpisodes,
   ) {
+    // Providers that still need an int.
+    final episodeInt = episode.episode.toInt();
+
     final serversFuture = ref.read(
-      episodeServersProvider((
-        slug: widget.slug,
-        episode: episode.episode,
-      )).future,
+      episodeServersProvider((slug: widget.slug, episode: episodeInt)).future,
     );
 
+    // The history provider now accepts the num directly.
     ref
         .read(historyProvider.notifier)
-        .addOrUpdateHistory(widget.slug, episode.episode);
+        .addOrUpdateHistory(widget.slug, episode.episode, status: 'watching');
 
     Navigator.push(
       context,
@@ -541,10 +557,9 @@ class _EpisodeListState extends ConsumerState<_EpisodeList> {
         builder: (context) => EpisodePlayerScreen(
           serversFuture: serversFuture,
           allEpisodes: allEpisodes,
-          currentEpisodeNumber: episode.episode,
+          // EpisodePlayerScreen still expects an int for now.
+          currentEpisodeNumber: episodeInt,
           animeSlug: widget.slug,
-          episodeId: '',
-          videoUrl: '',
         ),
       ),
     );

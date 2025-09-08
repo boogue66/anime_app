@@ -5,23 +5,38 @@ import 'package:anime_app/services/api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart'; // Import Dio for DioException
 
+
+
 class HistoryService {
   final ApiService _apiService;
 
   HistoryService(this._apiService);
 
+  String _extractSlug(String animeSlug) {
+    if (animeSlug.startsWith('http')) {
+      try {
+        return Uri.parse(animeSlug).pathSegments.lastWhere((s) => s.isNotEmpty);
+      } catch (e) {
+        // Fallback to original slug if parsing fails
+        return animeSlug;
+      }
+    }
+    return animeSlug;
+  }
+
   Future<List<History>> getHistory(String userId) async {
     try {
+      print('HistoryService: Calling GET /api/history/$userId/history');
       final response = await _apiService.get('/api/history/$userId/history');
-      // Add null/empty checks for response.data and its keys
-      if (response.data == null ||
-          !response.data.containsKey('data') ||
-          !response.data['data'].containsKey('history')) {
+      print('HistoryService: getHistory response.data: ${response.data}');
+      final List<dynamic>? historyData = response.data?['data']?['history'];
+
+      if (historyData == null) {
         throw Exception(
-          'Invalid API response structure: missing data or history key.',
+          'Invalid API response structure: expected a list under data.history.',
         );
       }
-      return (response.data['data']['history'] as List)
+      return historyData
           .map((json) => History.fromJson(json))
           .toList();
     } on DioException catch (e) {
@@ -41,25 +56,25 @@ class HistoryService {
   Future<History?> addHistory(
     String userId,
     String animeSlug,
-    int episodeNumber, {
+    num episodeNumber, {
     String? status,
   }) async {
     try {
+      print('HistoryService: Calling POST /api/history/$userId/history with animeSlug: $animeSlug, status: $status');
       final response = await _apiService.post(
         '/api/history/$userId/history',
         data: {
-          'animeSlug': animeSlug,
+          'animeSlug': _extractSlug(animeSlug),
           'status': status ?? 'watching',
         },
       );
-      if (response.data == null ||
-          !response.data.containsKey('data') ||
-          !response.data['data'].containsKey('history')) {
+      print('HistoryService: addHistory response.data: ${response.data}');
+      if (response.data == null || response.data is! Map) {
         throw Exception(
-          'Invalid API response structure: missing data or history key.',
+          'Invalid API response structure: expected a map.',
         );
       }
-      return History.fromJson(response.data['data']['history']);
+      return History.fromJson(response.data);
     } on DioException catch (e) {
       print('Error adding history for user $userId, anime $animeSlug: $e');
       throw Exception(
@@ -73,17 +88,17 @@ class HistoryService {
 
   Future<History?> getAnimeHistory(String userId, String animeSlug) async {
     try {
+      final finalSlug = _extractSlug(animeSlug);
+      final encodedSlug = Uri.encodeComponent(finalSlug);
+      print('HistoryService: Calling GET /api/history/$userId/history/$encodedSlug');
       final response = await _apiService.get(
-        '/api/history/$userId/history/$animeSlug',
+        '/api/history/$userId/history/$encodedSlug',
       );
-      if (response.data == null ||
-          !response.data.containsKey('data') ||
-          !response.data['data'].containsKey('history')) {
-        throw Exception(
-          'Invalid API response structure: missing data or history key.',
-        );
+      print('HistoryService: getAnimeHistory response.data: ${response.data}');
+      if (response.data == null || response.data is! Map) {
+        return null; // Return null if history is not found or is null
       }
-      return History.fromJson(response.data['data']['history']);
+      return History.fromJson(response.data);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         return null; // History for this anime not found
@@ -104,41 +119,38 @@ class HistoryService {
   Future<History?> updateHistory(
     String userId,
     String animeSlug,
-    int episodeNumber, {
+    num episodeNumber, {
     String? status,
   }) async {
     try {
-      // Fetch existing history to get episodesWatched
-      final existingHistory = await getAnimeHistory(userId, animeSlug);
-      List<int> episodesWatched = [];
+      final finalSlug = _extractSlug(animeSlug);
+      final encodedSlug = Uri.encodeComponent(finalSlug);
+      print('HistoryService: Calling PATCH /api/history/$userId/history/$encodedSlug with episodeNumber: $episodeNumber, status: $status');
+      final existingHistory = await getAnimeHistory(userId, finalSlug);
+      List<num> episodesWatched = [];
       if (existingHistory != null) {
-        episodesWatched = List<int>.from(
-          existingHistory.episodesWatched.map((e) => e as int),
-        );
+        episodesWatched = List<num>.from(existingHistory.episodesWatched);
       }
 
-      // Add current episode if not already in the list
       if (!episodesWatched.contains(episodeNumber)) {
         episodesWatched.add(episodeNumber);
-        episodesWatched.sort(); // Keep it sorted
+        episodesWatched.sort();
       }
 
       final response = await _apiService.patch(
-        '/api/history/$userId/history/$animeSlug',
+        '/api/history/$userId/history/$encodedSlug',
         data: {
           'lastEpisode': episodeNumber,
           'episodesWatched': episodesWatched,
           'status': status ?? 'watching',
         },
       );
-      if (response.data == null ||
-          !response.data.containsKey('data') ||
-          !response.data['data'].containsKey('history')) {
+      if (response.data == null || response.data is! Map) {
         throw Exception(
-          'Invalid API response structure: missing data or history key.',
+          'Invalid API response structure: expected a map.',
         );
       }
-      return History.fromJson(response.data['data']['history']);
+      return History.fromJson(response.data);
     } on DioException catch (e) {
       print('Error updating history for user $userId, anime $animeSlug: $e');
       throw Exception(
@@ -152,7 +164,11 @@ class HistoryService {
 
   Future<void> deleteHistory(String userId, String animeSlug) async {
     try {
-      await _apiService.delete('/api/history/$userId/history/$animeSlug');
+      final finalSlug = _extractSlug(animeSlug);
+      final encodedSlug = Uri.encodeComponent(finalSlug);
+      print('HistoryService: Calling DELETE /api/history/$userId/history/$encodedSlug');
+      await _apiService.delete('/api/history/$userId/history/$encodedSlug');
+      print('HistoryService: Delete successful.');
     } on DioException catch (e) {
       print('Error deleting history for user $userId, anime $animeSlug: $e');
       throw Exception(

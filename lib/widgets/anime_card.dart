@@ -17,7 +17,7 @@ class AnimeCard extends ConsumerWidget {
           context,
           MaterialPageRoute(
             builder: (context) =>
-                AnimeDetailScreen(slug: anime.slug, id: anime.id),
+                AnimeDetailScreen(slug: anime.slug,),
           ),
         );
       },

@@ -19,17 +19,12 @@ class AnimeCardSkeleton extends StatelessWidget {
                   topLeft: Radius.circular(12.0),
                   topRight: Radius.circular(12.0),
                 ),
-                child: Container(
-                  color: Colors.white,
-                ),
+                child: Container(color: Colors.grey),
               ),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Container(
-                height: 10,
-                color: Colors.white,
-              ),
+              child: Container(height: 10, color: Colors.grey),
             ),
           ],
         ),
