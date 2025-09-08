@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'dart:math';
+import 'package:anime_app/providers/filter_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:anime_app/models/anime_model.dart';
@@ -46,11 +47,14 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
         body: CustomScrollView(
           slivers: [
             SliverAppBar(
+             
               elevation: 5,
-              expandedHeight: 390.0,
+              expandedHeight: 340.0,
               pinned: true,
-              floating: false,
+              floating: true,
               flexibleSpace: FlexibleSpaceBar(
+                expandedTitleScale: 1,
+                collapseMode: CollapseMode.pin,
                 title: Text(
                   anime.title,
                   style: const TextStyle(
@@ -61,22 +65,40 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: 1.5, sigmaY: 1.5),
-                      child: CachedNetworkImage(
-                        imageUrl: anime.poster,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) =>
-                            const Center(child: CircularProgressIndicator()),
-                        errorWidget: (context, url, error) => const Icon(Icons.error),
-                      ),
+                    CachedNetworkImage(
+                      color: Colors.black12,
+                      colorBlendMode: BlendMode.darken,
+                      filterQuality: FilterQuality.high,
+                      imageUrl: anime.poster,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) => const Icon(Icons.error),
                     ),
-                    const DecoratedBox(
+                    BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5), // muy leve
+                      child: Container(color: Colors.transparent),
+                    ),
+                    CachedNetworkImage(
+                      color: Colors.black12,
+                      colorBlendMode: BlendMode.darken,
+                      filterQuality: FilterQuality.high,
+                      imageUrl: anime.poster,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) =>
+                          const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) => const Icon(Icons.error),
+                    ),
+                    DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          begin: Alignment(0.0, 0.8),
-                          end: Alignment(0.0, 0.0),
-                          colors: <Color>[Color(0xC3000000), Color(0x00000000)],
+                          colors: [
+                            Colors.black.withAlpha(100),
+                            Colors.transparent,
+                            Colors.black.withAlpha(100),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
                       ),
                     ),
@@ -180,13 +202,13 @@ class _AnimeDetailScreenState extends ConsumerState<AnimeDetailScreen> {
   }
 }
 
-class _AnimeDetails extends StatelessWidget {
+class _AnimeDetails extends ConsumerWidget {
   final Anime anime;
 
   const _AnimeDetails({required this.anime});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
@@ -222,8 +244,8 @@ class _AnimeDetails extends StatelessWidget {
                     label: Text(genre),
                     elevation: 0,
                     onPressed: () {
-                      final sanitizedGenre = genre.replaceAll('%', '%25');
-                      context.push('/animes/genre/${Uri.encodeComponent(sanitizedGenre)}');
+                      ref.read(filterProvider.notifier).setGenres([genre]);
+                      context.push('/home', extra: 2);
                     },
                   ),
                 )

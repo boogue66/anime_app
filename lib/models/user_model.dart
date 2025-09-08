@@ -1,14 +1,16 @@
 class User {
-  final String id;
+  final String? id;
   final String username;
   final String email;
-  final DateTime createdAt;
+  final String? password;
+  final DateTime? createdAt;
 
   User({
-    required this.id,
+    this.id,
     required this.username,
     required this.email,
-    required this.createdAt,
+    this.password,
+    this.createdAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -20,12 +22,20 @@ class User {
     );
   }
 
+  Map<String, dynamic> toRegisterJson() {
+    return {
+      'username': username,
+      'email': email,
+      'password': password,
+    };
+  }
+
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
       'username': username,
       'email': email,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 }

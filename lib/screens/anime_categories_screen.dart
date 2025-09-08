@@ -59,11 +59,12 @@ class AnimeCategoriesScreen extends ConsumerWidget {
     final filters = ref.watch(filterProvider);
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            Row(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 0.0),
+
+            child: Row(
               children: [
                 Expanded(
                   child: CustomSearchableDropdown(
@@ -99,10 +100,10 @@ class AnimeCategoriesScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            const Expanded(child: FilterResults()),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          const Expanded(child: FilterResults()),
+        ],
       ),
     );
   }
@@ -118,7 +119,7 @@ class FilterResults extends ConsumerWidget {
     return filterResult.when(
       data: (animes) {
         if (animes.isEmpty) {
-          return const Center(child: Text('No results found.'));
+          return const Center(child: Text('No se encontraron resultados.'));
         }
         final mediaQuery = MediaQuery.of(context);
         final isTablet = mediaQuery.size.shortestSide >= 600;

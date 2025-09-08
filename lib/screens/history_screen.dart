@@ -57,7 +57,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ref.watch(selectedHistoryStatusProvider) == 'watching'
                           ? Theme.of(context).primaryColor
-                          : null,
+                          : Theme.of(context).colorScheme.primary.withAlpha(180),
                     ),
                     child: const Text('Viendo', style: TextStyle(color: Colors.black)),
                   ),
@@ -70,9 +70,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ref.watch(selectedHistoryStatusProvider) == 'completed'
                           ? Theme.of(context).primaryColor
-                          : null,
+                          : Theme.of(context).colorScheme.primary.withAlpha(180),
                     ),
-                    child: const Text('Finished', style: TextStyle(color: Colors.black)),
+                    child: const Text('Completados', style: TextStyle(color: Colors.black)),
                   ),
                 ),
               ],

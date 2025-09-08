@@ -15,10 +15,7 @@ class AnimeCard extends ConsumerWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) =>
-                AnimeDetailScreen(slug: anime.slug,),
-          ),
+          MaterialPageRoute(builder: (context) => AnimeDetailScreen(slug: anime.slug)),
         );
       },
       child: Stack(
@@ -34,6 +31,8 @@ class AnimeCard extends ConsumerWidget {
                       topRight: Radius.circular(12.0),
                     ),
                     child: CachedNetworkImage(
+                      color: Colors.black26,
+                      colorBlendMode: BlendMode.darken,
                       imageUrl: anime.poster,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Shimmer.fromColors(
@@ -41,13 +40,10 @@ class AnimeCard extends ConsumerWidget {
                         highlightColor: Colors.grey[100]!,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(child: Container(color: Colors.white)),
-                          ],
+                          children: [Expanded(child: Container(color: Colors.white))],
                         ),
                       ),
-                      errorWidget: (context, url, error) =>
-                          const Icon(Icons.error),
+                      errorWidget: (context, url, error) => const Icon(Icons.error),
                     ),
                   ),
                 ),

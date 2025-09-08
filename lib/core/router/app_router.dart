@@ -1,6 +1,6 @@
 import 'package:anime_app/providers/user_provider.dart';
+import 'package:anime_app/screens/anime_categories_screen.dart';
 import 'package:anime_app/screens/anime_detail_screen.dart';
-import 'package:anime_app/screens/anime_genre_screen.dart';
 import 'package:anime_app/screens/anime_list_screen.dart';
 import 'package:anime_app/screens/episode_player_screen.dart';
 import 'package:anime_app/screens/history_screen.dart';
@@ -9,7 +9,6 @@ import 'package:anime_app/screens/login_screen.dart';
 import 'package:anime_app/screens/register_screen.dart';
 import 'package:anime_app/screens/search_screen.dart';
 import 'package:anime_app/screens/user_profile_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,166 +18,45 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
     routes: [
-      GoRoute(
-        path: '/login',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const LoginScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
-              child: child,
-            );
-          },
-        ),
-      ),
-      GoRoute(
-        path: '/register',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const RegisterScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
-              child: child,
-            );
-          },
-        ),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(
         path: '/home',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const HomeScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
-              child: child,
-            );
-          },
-        ),
+        builder: (context, agstate) => HomeScreen(initialIndex: agstate.extra as int? ?? 0),
       ),
-      GoRoute(
-        path: '/list',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const AnimeListScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(parent: animation, curve: Curves.elasticOut)),
-              child: FadeTransition(
-                opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
-                child: child,
-              ),
-            );
-          },
-        ),
-      ),
-      GoRoute(
-        path: '/search',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const SearchScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
-              child: child,
-            );
-          },
-        ),
-      ),
-      GoRoute(
-        path: '/history',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const HistoryScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
-              child: child,
-            );
-          },
-        ),
-      ),
-      GoRoute(
-        path: '/profile',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const UserProfileScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
-              child: child,
-            );
-          },
-        ),
-      ),
+      GoRoute(path: '/list', builder: (context, state) => const AnimeListScreen()),
+      GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
+      GoRoute(path: '/categories', builder: (context, state) => AnimeCategoriesScreen()),
+      GoRoute(path: '/history', builder: (context, state) => const HistoryScreen()),
+      GoRoute(path: '/profile', builder: (context, state) => const UserProfileScreen()),
       GoRoute(
         path: '/anime/:slug',
-        pageBuilder: (context, state) {
+        builder: (context, state) {
           final slug = state.pathParameters['slug']!;
-          return CustomTransitionPage(
-            key: state.pageKey,
-            child: AnimeDetailScreen(slug: slug),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
-                child: child,
-              );
-            },
-          );
+          return AnimeDetailScreen(slug: slug);
         },
       ),
       GoRoute(
         path: '/episode/:id',
-        pageBuilder: (context, state) {
-          return CustomTransitionPage(
-            key: state.pageKey,
-            child: EpisodePlayerScreen(
-              serversFuture: Future.value([]),
-              allEpisodes: [],
-              animeSlug: '',
-              currentEpisodeNumber: 0,
-            ),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: CurveTween(curve: Curves.easeInOutCirc).animate(animation),
-                child: child,
-              );
-            },
-          );
-        },
-      ),
-      GoRoute(
-        path: '/animes/genre/:genre',
         builder: (context, state) {
-          final rawGenre = state.pathParameters['genre']!;
-          String genre;
-          try {
-            genre = Uri.decodeComponent(rawGenre);
-          } catch (e) {
-            // Fallback to raw genre if decoding fails
-            genre = rawGenre;
-          }
-          return AnimeGenreScreen(genre: genre);
+          return EpisodePlayerScreen(
+            serversFuture: Future.value([]),
+            allEpisodes: [],
+            animeSlug: '',
+            currentEpisodeNumber: 0,
+          );
         },
       ),
     ],
     redirect: (context, state) {
       final isLoggedIn = userState.asData?.value != null;
       final isLoggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/register';
-
       if (!isLoggedIn && !isLoggingIn) {
         return '/login';
       }
-
       if (isLoggedIn && isLoggingIn) {
         return '/home';
       }
-
       return null;
     },
   );

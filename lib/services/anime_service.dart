@@ -41,16 +41,16 @@ class AnimeService {
     }
   }
 
-  Future<List<Anime>> getLatestEpisodes() => _getAnimeList('/api/animes/list/latest-episodes?limit=30');
+  Future<List<Anime>> getLatestEpisodes() => _getAnimeList('/animes/list/latest-episodes?limit=30');
 
-  Future<List<Anime>> getLatestAnimes() => _getAnimeList('/api/animes/list/latest-animes?limit=30');
+  Future<List<Anime>> getLatestAnimes() => _getAnimeList('/animes/list/latest-animes?limit=30');
 
-  Future<List<Anime>> getOnAirAnimes() => _getAnimeList('/api/animes/list/on-air');
+  Future<List<Anime>> getOnAirAnimes() => _getAnimeList('/animes/list/on-air');
 
-  Future<List<Anime>> getComingSoonAnimes() => _getAnimeList('/api/animes/list/coming-soon');
+  Future<List<Anime>> getComingSoonAnimes() => _getAnimeList('/animes/list/coming-soon');
 
   Future<List<Anime>> getAnimes({int page = 1, int limit = 25, String sort = 'desc'}) {
-    return _getAnimeList('/api/animes?page=$page&limit=$limit&sort=$sort');
+    return _getAnimeList('/animes?page=$page&limit=$limit&sort=$sort');
   }
 
   Future<List<Anime>> searchAnimes(
@@ -59,7 +59,7 @@ class AnimeService {
     int limit = 25,
     String sort = 'desc',
   }) {
-    return _getAnimeList('/api/animes/search?query=$query&page=$page&limit=$limit&sort=$sort');
+    return _getAnimeList('/animes/search?query=$query&page=$page&limit=$limit&sort=$sort');
   }
 
   Future<List<Anime>> filterAnimes(
@@ -68,18 +68,14 @@ class AnimeService {
     int limit = 25,
     String sort = 'desc',
   }) {
-    final queryParameters = {
-      'page': page.toString(),
-      'limit': limit.toString(),
-      'sort': sort,
-    };
+    final queryParameters = {'page': page.toString(), 'limit': limit.toString(), 'sort': sort};
     // Remove page, limit, sort from filters if they were mistakenly added to body
     final bodyFilters = Map<String, dynamic>.from(filters);
     bodyFilters.remove('page');
     bodyFilters.remove('limit');
     bodyFilters.remove('sort');
 
-    final uri = Uri.parse('/api/animes/search/by-filter').replace(queryParameters: queryParameters);
+    final uri = Uri.parse('/animes/search/by-filter').replace(queryParameters: queryParameters);
     return _postAnimeList(uri.toString(), bodyFilters);
   }
 
@@ -118,7 +114,7 @@ class AnimeService {
     String? sort,
   }) async {
     try {
-      var endpoint = '/api/animes/$slug?page=$page&limit=$limit';
+      var endpoint = '/animes/$slug?page=$page&limit=$limit';
       if (sort != null) {
         endpoint += '&sort=$sort';
       }
@@ -137,7 +133,7 @@ class AnimeService {
     String? sort,
   }) async {
     try {
-      var endpoint = '/api/animes/$slug/episodes?page=$page&limit=$limit';
+      var endpoint = '/animes/$slug/episodes?page=$page&limit=$limit';
       if (sort != null) {
         endpoint += '&sort=$sort';
       }
@@ -151,7 +147,7 @@ class AnimeService {
 
   Future<List<ServerElement>> getEpisodeServers(String slug, int episodeNumber) async {
     try {
-      final response = await _dio.get('/api/animes/$slug/episodes/$episodeNumber');
+      final response = await _dio.get('/animes/$slug/episodes/$episodeNumber');
       final data = response.data as List;
       return data.map((item) => ServerElement.fromJson(item)).toList();
     } catch (e) {
@@ -162,7 +158,7 @@ class AnimeService {
 
   Future<Anime> createAnime(Anime anime) async {
     try {
-      final response = await _dio.post('/api/animes/new', data: anime.toJson());
+      final response = await _dio.post('/animes/new', data: anime.toJson());
       return Anime.fromJson(response.data);
     } catch (e) {
       print('Error creating anime: $e');
@@ -172,7 +168,7 @@ class AnimeService {
 
   Future<Anime> updateAnime(String id, Anime anime) async {
     try {
-      final response = await _dio.put('/api/animes/$id', data: anime.toJson());
+      final response = await _dio.put('/animes/$id', data: anime.toJson());
       return Anime.fromJson(response.data);
     } catch (e) {
       print('Error updating anime $id: $e');
@@ -182,7 +178,7 @@ class AnimeService {
 
   Future<void> deleteAnime(String id) async {
     try {
-      await _dio.delete('/api/animes/$id');
+      await _dio.delete('/animes/$id');
     } catch (e) {
       print('Error deleting anime $id: $e');
       rethrow;

@@ -3,22 +3,32 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Provider que crea la instancia base de Dio.
+/// Provider that creates the base Dio instance.
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'https://api-anime-6wv4.onrender.com',
-      // Aquí puedes añadir headers por defecto, como la clave de la API
-      headers: {
-        // 'X-MAL-CLIENT-ID': 'TU_CLIENT_ID',
-      },
-      connectTimeout: const Duration(seconds: 10), // Increased from 5
-      receiveTimeout: const Duration(seconds: 6), // Increased from 3
+      baseUrl: 'https://api-anime-6wv4.onrender.com/api',
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 6),
     ),
   );
 
-  // Añade un interceptor para logging solo en modo debug
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('token');
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        return handler.next(options);
+      },
+    ),
+  );
+
+  // Add a logger interceptor for debug mode
   if (kDebugMode) {
     dio.interceptors.add(LogInterceptor(responseBody: true, requestBody: true));
   }
@@ -26,7 +36,7 @@ final dioProvider = Provider<Dio>((ref) {
   return dio;
 });
 
-/// Clase para manejar las llamadas a la API.
+/// Class to handle API calls.
 class ApiService {
   final Dio _dio;
 
@@ -38,7 +48,7 @@ class ApiService {
       return await _dio.get(path);
     } on DioException catch (e) {
       print('API GET Error on $path: $e');
-      rethrow; // Re-throw to be caught by specific service methods
+      rethrow;
     } catch (e) {
       print('Unexpected API GET Error on $path: $e');
       rethrow;
@@ -84,21 +94,10 @@ class ApiService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getAllUsers() async {
-    try {
-      final response = await _dio.get('/api/users');
-      // As per swagger.yaml, paginated responses use 'docs' key
-      return List<Map<String, dynamic>>.from(response.data['docs']);
-    } catch (e) {
-      print('Error getting all users: $e');
-      return [];
-    }
-  }
-
-  Future<Map<String, dynamic>> createUser(String username, String email, String password) async {
+  Future<Map<String, dynamic>> signup(String username, String email, String password) async {
     try {
       final response = await _dio.post(
-        '/api/users',
+        '/users/signup',
         data: {'username': username, 'email': email, 'password': password},
       );
       return response.data;
@@ -115,50 +114,28 @@ class ApiService {
       } else if (e.type == DioExceptionType.unknown) {
         errorMessage = 'Network error or no response. Check your connection.';
       }
-      print('Create user error: $errorMessage'); // Added print for debugging
+      print('Create user error: $errorMessage');
       return {'error': errorMessage};
     } catch (e) {
-      print('An unexpected error occurred during user creation: $e'); // More specific print
+      print('An unexpected error occurred during user creation: $e');
       return {'error': 'An unexpected error occurred'};
     }
   }
 
-  Future<bool> checkEmail(String email) async {
+  Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      await _dio.get('/api/users/check/$email');
-      return true; // Exists
+      final response = await _dio.post(
+        '/users/login',
+        data: {'email': email, 'password': password},
+      );
+      return response.data;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        return false; // Doesn't exist
-      }
-      String errorMessage = 'Error checking email';
-      if (e.type == DioExceptionType.connectionTimeout) {
-        errorMessage = 'Connection timed out while checking email.';
-      } else if (e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = 'Server did not respond in time while checking email.';
-      } else if (e.type == DioExceptionType.badResponse) {
-        errorMessage = 'Server error (${e.response?.statusCode}) while checking email.';
-      } else if (e.type == DioExceptionType.unknown) {
-        errorMessage = 'Network error or no response while checking email.';
-      }
-      print('$errorMessage: $e'); // More specific print
-      return false;
-    } catch (e) {
-      print('An unexpected error occurred during email check: $e'); // More specific print
-      return false;
-    }
-  }
-
-  Future<Map<String, dynamic>?> login(String email) async {
-    try {
-      final response = await _dio.get('/api/users/check/$email');
-      return response.data['data']['user'];
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        return null;
-      }
       String errorMessage = 'Error logging in';
-      if (e.type == DioExceptionType.connectionTimeout) {
+      if (e.response?.statusCode == 401) {
+        errorMessage = 'Incorrect email or password';
+      } else if (e.response != null) {
+        errorMessage = e.response!.data['message'] ?? errorMessage;
+      } else if (e.type == DioExceptionType.connectionTimeout) {
         errorMessage = 'Connection timed out during login.';
       } else if (e.type == DioExceptionType.receiveTimeout) {
         errorMessage = 'Server did not respond in time during login.';
@@ -167,13 +144,13 @@ class ApiService {
       } else if (e.type == DioExceptionType.unknown) {
         errorMessage = 'Network error or no response during login.';
       }
-      print('$errorMessage: $e'); // More specific print
-      return null;
+      print('$errorMessage: $e');
+      return {'error': errorMessage};
     }
   }
 }
 
-/// Provider para la instancia de ApiService.
+/// Provider for the ApiService instance.
 final apiServiceProvider = Provider<ApiService>((ref) {
   final dio = ref.watch(dioProvider);
   return ApiService(dio);

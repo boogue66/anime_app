@@ -10,16 +10,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  final int initialIndex;
+  const HomeScreen({super.key, this.initialIndex = 0});
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   @override
   void dispose() {
@@ -57,10 +64,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         transitionBuilder: (Widget child, Animation<double> animation) {
           return FadeTransition(opacity: animation, child: child);
         },
-        child: SizedBox(
-          key: ValueKey<int>(_selectedIndex),
-          child: screens[_selectedIndex],
-        ),
+        child: SizedBox(key: ValueKey<int>(_selectedIndex), child: screens[_selectedIndex]),
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
@@ -71,10 +75,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   AppBar _buildNormalAppBar() {
     return AppBar(
-      /* title: Text(
-        'Animee',
-        style: TextStyle(color: Theme.of(context).colorScheme.primary),
-      ), */
       title: Image.asset('assets/logo.png'),
       actions: [
         IconButton(
@@ -105,10 +105,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       title: TextField(
         controller: _searchController,
         autofocus: true,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18.0,
-        ), // Added style
+        style: const TextStyle(color: Colors.white, fontSize: 18.0), // Added style
         decoration: const InputDecoration(
           hintText: 'Buscar animes...',
           border: InputBorder.none,
@@ -123,7 +120,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           icon: const Icon(Icons.close),
           onPressed: () {
             setState(() {
-              // Added setState to close search bar
               _isSearching = false;
               ref.read(debouncedSearchProvider.notifier).onSearchChanged('');
               _searchController.clear(); // Clear text field
@@ -149,8 +145,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
   void initState() {
     super.initState();
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-          _scrollController.position.maxScrollExtent - 200) {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
         final searchQuery = ref.read(debouncedSearchProvider);
         if (searchQuery.isEmpty) {
           ref.read(paginatedAnimesProvider.notifier).fetchNextPage();
@@ -171,9 +166,9 @@ class _HomeContentState extends ConsumerState<HomeContent> {
 
     if (searchQuery.isNotEmpty) {
       return const SearchResults();
-    } else {
-      return PaginatedAnimes(scrollController: _scrollController);
     }
+
+    return PaginatedAnimes(scrollController: _scrollController);
   }
 }
 
@@ -203,9 +198,7 @@ class PaginatedAnimes extends ConsumerWidget {
             : (mediaQuery.orientation == Orientation.portrait
                   ? 3
                   : 4), // Adjusted for tablet portrait/landscape
-        childAspectRatio: mediaQuery.orientation == Orientation.portrait
-            ? 0.555
-            : 0.62,
+        childAspectRatio: mediaQuery.orientation == Orientation.portrait ? 0.555 : 0.62,
         crossAxisSpacing: 5.0,
         mainAxisSpacing: 5.0,
       ),
@@ -236,8 +229,7 @@ class _SearchResultsState extends ConsumerState<SearchResults> {
   void initState() {
     super.initState();
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-          _scrollController.position.maxScrollExtent - 200) {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
         ref.read(paginatedSearchResultProvider.notifier).fetchNextPage();
       }
     });

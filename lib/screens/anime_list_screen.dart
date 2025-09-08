@@ -14,8 +14,8 @@ final selectedCategoryProvider = StateProvider<AnimeCategory>(
 
 // Un mapa de categorías a sus nombres para mostrar en los botones
 final categoryNames = {
-  AnimeCategory.latestEpisodes: 'News Eps',
-  AnimeCategory.latestAnimes: 'News Ani',
+  AnimeCategory.latestEpisodes: 'Nuevos Episodios',
+  AnimeCategory.latestAnimes: 'Nuevos Animes',
 };
 
 class AnimeListScreen extends ConsumerWidget {
@@ -24,8 +24,6 @@ class AnimeListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedCategory = ref.watch(selectedCategoryProvider);
-
-    // Elige el provider correcto basado en la categoría seleccionada
     final animeListProvider =
         () {
               switch (selectedCategory) {
@@ -49,33 +47,30 @@ class AnimeListScreen extends ConsumerWidget {
               children: AnimeCategory.values.map((category) {
                 return Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 2.0, right: 2.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 2.0),
                     child: ElevatedButton(
                       onPressed: () => ref.read(selectedCategoryProvider.notifier).state = category,
                       style: ElevatedButton.styleFrom(
                         elevation: 5,
                         backgroundColor: selectedCategory == category
                             ? Theme.of(context).colorScheme.primary
-                            : null,
+                            : Theme.of(context).colorScheme.primary.withAlpha(180),
                         foregroundColor: selectedCategory == category
                             ? Theme.of(context).colorScheme.onPrimary
-                            : null,
+                            : Theme.of(context).colorScheme.primary.withAlpha(180),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             categoryNames[category]!,
                             style: TextStyle(
+                              fontSize: 13,
                               color: selectedCategory == category
                                   ? Theme.of(context).colorScheme.surface
                                   : Theme.of(context).colorScheme.surface,
                             ),
                           ),
-                          selectedCategory == category
-                              ? Icon(Icons.circle, color: Colors.black12, size: 10)
-                              : Icon(Icons.circle, color: Colors.transparent, size: 10),
                         ],
                       ),
                     ),

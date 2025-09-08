@@ -7,7 +7,6 @@ import 'package:anime_app/screens/anime_detail_screen.dart';
 
 class HistoryCard extends ConsumerWidget {
   final History item;
-
   const HistoryCard({super.key, required this.item});
 
   @override
@@ -24,8 +23,7 @@ class HistoryCard extends ConsumerWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (context) => AnimeDetailScreen(slug: anime.slug)),
+            MaterialPageRoute(builder: (context) => AnimeDetailScreen(slug: anime.slug)),
           );
         },
         child: Padding(
@@ -40,8 +38,7 @@ class HistoryCard extends ConsumerWidget {
                   height: 70,
                   imageUrl: anime.poster,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      const Center(child: CircularProgressIndicator()),
+                  placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
                   errorWidget: (context, url, error) => const Icon(Icons.error),
                 ),
               ),
@@ -91,12 +88,17 @@ class HistoryCard extends ConsumerWidget {
                                   );
                             }
                           },
-                          items: <String>['watching', 'completed']
-                              .map<DropdownMenuItem<String>>((
+                          items: <String>['watching', 'completed'].map<DropdownMenuItem<String>>((
                             String value,
                           ) {
+                            final Map<String, String> statusLabels = {
+                              'watching': 'Viendo',
+                              'completed': 'Completados',
+                            };
                             return DropdownMenuItem<String>(
-                                value: value, child: Text(value));
+                              value: value,
+                              child: Text(statusLabels[value] ?? value),
+                            );
                           }).toList(),
                         ),
                       ],
@@ -105,8 +107,7 @@ class HistoryCard extends ConsumerWidget {
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.delete,
-                    color: Theme.of(context).colorScheme.primary),
+                icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.primary),
                 onPressed: () {
                   ref.read(historyProvider.notifier).removeHistory(anime.slug);
                 },

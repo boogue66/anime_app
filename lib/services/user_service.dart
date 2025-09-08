@@ -9,42 +9,30 @@ class UserService {
 
   UserService(this._apiService);
 
-  // WARNING: This approach is highly inefficient and insecure for production.
-  // It fetches all users to check existence or perform login.
-  // A proper backend should have dedicated endpoints for these operations.
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    final response = await _apiService.login(email, password);
 
-  Future<bool> checkEmailExists(String email) async {
-    return await _apiService.checkEmail(email);
-  }
-
-  Future<User?> login(String email) async {
-    final userMap = await _apiService.login(email);
-
-    if (userMap != null) {
-      return User.fromJson(userMap);
-    }
-    return null;
-  }
-
-  Future<User?> register(String username, String email) async {
-    final userExists = await checkEmailExists(email);
-    if (userExists) {
-      print('Register error: Email already in use.');
-      return null;
-    }
-
-    final response = await _apiService.createUser(username, email, '123456');
     if (response.containsKey('error')) {
-      print('Register error: ${response['error']}');
-      throw Exception(response['error'] ?? 'Failed to register');
+      throw Exception(response['error']);
     }
 
-    if (response.containsKey('data') && response['data']['user'] != null) {
-      return User.fromJson(response['data']['user']);
-    } else {
-      print('Register error: Unexpected response structure.');
-      throw Exception('Failed to register due to unexpected response.');
+    final user = User.fromJson(response['data']['user']);
+    final token = response['token'];
+
+    return {'user': user, 'token': token};
+  }
+
+  Future<Map<String, dynamic>> register(String username, String email, String password) async {
+    final response = await _apiService.signup(username, email, password);
+
+    if (response.containsKey('error')) {
+      throw Exception(response['error']);
     }
+    
+    final user = User.fromJson(response['data']['user']);
+    final token = response['token'];
+
+    return {'user': user, 'token': token};
   }
 }
 

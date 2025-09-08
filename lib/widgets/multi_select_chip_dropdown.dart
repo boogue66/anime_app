@@ -15,8 +15,7 @@ class MultiSelectChipDropdown extends StatefulWidget {
   });
 
   @override
-  State<MultiSelectChipDropdown> createState() =>
-      _MultiSelectChipDropdownState();
+  State<MultiSelectChipDropdown> createState() => _MultiSelectChipDropdownState();
 }
 
 class _MultiSelectChipDropdownState extends State<MultiSelectChipDropdown> {
@@ -39,10 +38,7 @@ class _MultiSelectChipDropdownState extends State<MultiSelectChipDropdown> {
       child: InputDecorator(
         decoration: InputDecoration(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12.0,
-            vertical: 8.0,
-          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -93,9 +89,7 @@ class _MultiSelectDialogState extends State<MultiSelectDialog> {
     _searchController.addListener(() {
       final query = _searchController.text.toLowerCase();
       setState(() {
-        _filteredItems = widget.items
-            .where((item) => item.toLowerCase().contains(query))
-            .toList();
+        _filteredItems = widget.items.where((item) => item.toLowerCase().contains(query)).toList();
       });
     });
   }
@@ -122,7 +116,7 @@ class _MultiSelectDialogState extends State<MultiSelectDialog> {
                 prefixIcon: Icon(Icons.search),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 2),
             Expanded(
               child: ListView.builder(
                 itemCount: _filteredItems.length,
@@ -130,10 +124,8 @@ class _MultiSelectDialogState extends State<MultiSelectDialog> {
                   final item = _filteredItems[index];
                   final isSelected = _selectedItems.contains(item);
                   return ListTile(
-                    dense: false,
-                    visualDensity: VisualDensity(
-                      vertical: VisualDensity.minimumDensity,
-                    ),
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: VisualDensity.minimumDensity),
                     title: Text(item),
                     trailing: isSelected ? const Icon(Icons.check) : null,
                     onTap: () {

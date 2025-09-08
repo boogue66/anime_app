@@ -11,6 +11,7 @@ class RegisterScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final TextEditingController emailController = TextEditingController();
     final TextEditingController usernameController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
     final userState = ref.watch(userProvider);
 
     ref.listen<AsyncValue<User?>>(userProvider, (previous, next) {
@@ -27,50 +28,66 @@ class RegisterScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Register')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextField(
+                  controller: usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16.0),
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16.0),
+                TextField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 24.0),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                  onPressed: userState.isLoading
+                      ? null
+                      : () {
+                          ref.read(userProvider.notifier).register(
+                                usernameController.text,
+                                emailController.text,
+                                passwordController.text,
+                              );
+                        },
+                  child: userState.isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text('Register'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    context.go('/login');
+                  },
+                  child: const Text('Already have an account? Login here.'),
+                ),
+              ],
             ),
-            const SizedBox(height: 16.0),
-            TextField(
-              controller: usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 24.0),
-            ElevatedButton(
-              onPressed: userState.isLoading
-                  ? null
-                  : () {
-                      ref
-                          .read(userProvider.notifier)
-                          .register(
-                            usernameController.text,
-                            emailController.text,
-                          );
-                    },
-              child: userState.isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Register'),
-            ),
-            TextButton(
-              onPressed: () {
-                context.go('/login');
-              },
-              child: const Text('Already have an account? Login here.'),
-            ),
-          ],
+          ),
         ),
       ),
     );

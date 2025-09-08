@@ -10,6 +10,7 @@ class LoginScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
 
     final userState = ref.watch(userProvider);
 
@@ -27,41 +28,56 @@ class LoginScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16.0),
+                TextField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 24.0),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                  onPressed: userState.isLoading
+                      ? null
+                      : () {
+                          ref
+                              .read(userProvider.notifier)
+                              .login(emailController.text, passwordController.text);
+                        },
+                  child: userState.isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text('Login'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    context.go('/register');
+                  },
+                  child: const Text("Don't have an account? Register here."),
+                ),
+              ],
             ),
-            const SizedBox(height: 16.0),
-
-            const SizedBox(height: 24.0),
-            ElevatedButton(
-              onPressed: userState.isLoading
-                  ? null
-                  : () {
-                      ref
-                          .read(userProvider.notifier)
-                          .login(emailController.text);
-                    },
-              child: userState.isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Login'),
-            ),
-            TextButton(
-              onPressed: () {
-                context.go('/register');
-              },
-              child: const Text("Don't have an account? Register here."),
-            ),
-          ],
+          ),
         ),
       ),
     );
